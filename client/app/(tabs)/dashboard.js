@@ -14,8 +14,8 @@ export default function DashboardScreen() {
 
   const fetchStats = async () => {
     try {
-      // Fetch stats from API in real implementation
-      setStats({ totalRooms: 20, bookedRooms: 8, availableRooms: 12, pendingTasks: 3 });
+      const response = await api.get('/dashboard/analytics');
+      setStats(response.data);
     } catch (e) {
       console.log('Error fetching stats', e);
     }
@@ -33,31 +33,63 @@ export default function DashboardScreen() {
     setRefreshing(false);
   }, []);
 
-  const renderManagerDashboard = () => (
-    <View style={styles.content}>
-      <View style={styles.welcomeSection}>
-        <View>
-          <Text style={styles.welcomeText}>Hotel Manager</Text>
-          <Text style={styles.subWelcome}>{user?.name}</Text>
-        </View>
-        <Avatar.Icon size={48} icon="account-tie" backgroundColor="#2c3e50" />
-      </View>
+  const renderManagerDashboard = () => {
+    const occupancyRate = stats.totalRooms > 0 
+      ? Math.round((stats.bookedRooms / stats.totalRooms) * 100) 
+      : 0;
 
-      <Text style={styles.sectionTitle}>Hotel Overview (Rs.)</Text>
-      <View style={styles.statsGrid}>
-        <Card style={styles.statCard}>
-          <Card.Content>
-            <Text style={styles.statLabel}>Monthly Rev.</Text>
-            <Text style={styles.statValue}>Rs. 85k</Text>
-          </Card.Content>
+    return (
+      <View style={styles.content}>
+        <View style={styles.welcomeSection}>
+          <View>
+            <Text style={styles.welcomeText}>Hotel Manager</Text>
+            <Text style={styles.subWelcome}>{user?.name}</Text>
+          </View>
+          <Avatar.Icon size={48} icon="account-tie" backgroundColor="#2c3e50" />
+        </View>
+
+        <Text style={styles.sectionTitle}>Business Status</Text>
+        <View style={styles.statsGrid}>
+          <Card style={styles.statCard}>
+            <Card.Content>
+              <Text style={styles.statLabel}>Total Revenue</Text>
+              <Text style={[styles.statValue, { color: '#2ecc71' }]}>Rs. {stats.totalRevenue?.toLocaleString()}</Text>
+            </Card.Content>
+          </Card>
+          <Card style={styles.statCard}>
+            <Card.Content>
+              <Text style={styles.statLabel}>Occupancy</Text>
+              <Text style={[styles.statValue, { color: '#3498db' }]}>{occupancyRate}%</Text>
+            </Card.Content>
+          </Card>
+        </View>
+
+        <View style={[styles.statsGrid, { marginTop: 16 }]}>
+          <Card style={[styles.statCard, { backgroundColor: stats.pendingRoomService > 0 ? '#fff3e0' : '#fff' }]}>
+            <Card.Content>
+              <Text style={styles.statLabel}>Room Service</Text>
+              <Text style={[styles.statValue, { color: '#e67e22' }]}>{stats.pendingRoomService} Pending</Text>
+            </Card.Content>
+          </Card>
+          <Card style={[styles.statCard, { backgroundColor: stats.lowStockItems > 0 ? '#ffebeef' : '#fff' }]}>
+            <Card.Content>
+              <Text style={styles.statLabel}>Inv. Alerts</Text>
+              <Text style={[styles.statValue, { color: '#e74c3c' }]}>{stats.lowStockItems} Low</Text>
+            </Card.Content>
+          </Card>
+        </View>
+
+        <Card style={styles.attendanceSummaryCard}>
+           <Card.Content style={styles.attendanceContent}>
+              <View>
+                <Text style={styles.statLabel}>Staff Attendance</Text>
+                <Text style={styles.attendanceText}>
+                   <Text style={{fontWeight: 'bold', color: '#2ecc71'}}>{stats.presentStaff}</Text> of {stats.totalStaff} Present Today
+                </Text>
+              </View>
+              <Button mode="outlined" compact onPress={() => router.push('/manager/attendance')}>View List</Button>
+           </Card.Content>
         </Card>
-        <Card style={styles.statCard}>
-          <Card.Content>
-            <Text style={styles.statLabel}>Occupancy</Text>
-            <Text style={styles.statValue}>65%</Text>
-          </Card.Content>
-        </Card>
-      </View>
 
       <Text style={styles.sectionTitle}>Staff Duties</Text>
       <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/manager/manage-rooms')}>
@@ -99,7 +131,23 @@ export default function DashboardScreen() {
       <Card style={[styles.statusCard, { backgroundColor: '#2ecc71' }]}>
         <Card.Content>
           <Title style={{ color: '#fff' }}>Duty Status</Title>
-          <Paragraph style={{ color: '#fff', opacity: 0.9 }}>You have {stats.pendingTasks} tasks pending today.</Paragraph>
+          <Paragraph style={{ color: '#fff', opacity: 0.9 }}>You have {stats.pendingTasks || 0} tasks pending today.</Paragraph>
+        </Card.Content>
+      </Card>
+
+      <Card style={styles.attendanceActionCard}>
+        <Card.Content style={styles.attendanceActionContent}>
+          <View>
+            <Text style={styles.attendanceLabel}>Attendance</Text>
+            <Text style={styles.attendanceStatus}>Status: <Text style={{color: stats.isCheckedIn ? '#2ecc71' : '#e74c3c'}}>{stats.isCheckedIn ? 'At Work' : 'Checked Out'}</Text></Text>
+          </View>
+          <Button 
+            mode="contained" 
+            buttonColor={stats.isCheckedIn ? '#e74c3c' : '#2ecc71'}
+            onPress={() => alert('Check-in feature requires linked Staff ID')}
+          >
+            {stats.isCheckedIn ? 'Check Out' : 'Check In'}
+          </Button>
         </Card.Content>
       </Card>
 
@@ -210,5 +258,12 @@ const styles = StyleSheet.create({
   serviceRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 8 },
   serviceBox: { alignItems: 'center' },
   serviceIconContainer: { width: 56, height: 56, borderRadius: 20, backgroundColor: '#fdedec', justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  serviceText: { fontSize: 12, color: '#7f8c8d', fontWeight: '600' }
+  serviceText: { fontSize: 12, color: '#7f8c8d', fontWeight: '600' },
+  attendanceSummaryCard: { marginTop: 20, borderRadius: 16, backgroundColor: '#fff', borderLeftWidth: 4, borderLeftColor: '#2ecc71', elevation: 2 },
+  attendanceContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
+  attendanceText: { fontSize: 15, color: '#34495e', marginTop: 4 },
+  attendanceActionCard: { marginTop: 16, borderRadius: 16, backgroundColor: '#fff', elevation: 2 },
+  attendanceActionContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  attendanceLabel: { fontSize: 12, color: '#7f8c8d', fontWeight: 'bold', textTransform: 'uppercase' },
+  attendanceStatus: { fontSize: 16, fontWeight: 'bold', color: '#2c3e50', marginTop: 2 }
 });
