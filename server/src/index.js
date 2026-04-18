@@ -16,6 +16,7 @@ const roomServiceRoutes = require('./routes/roomServiceRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const menuRoutes = require('./routes/menuRoutes');
+const attendanceRoutes = require('./routes/attendanceRoutes');
 const { initDatabase } = require('./services/bootstrapService');
 
 const app = express();
@@ -39,6 +40,7 @@ app.use('/api/housekeeping', housekeepingRoutes);
 app.use('/api/room-service', roomServiceRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/menu', menuRoutes);
+app.use('/api/attendance', attendanceRoutes);
 
 app.get('/', (req, res) => {
   res.send('InnSight API is running...');

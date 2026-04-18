@@ -7,66 +7,102 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        Int       @id @default(autoincrement())
-  name      String
-  email     String    @unique
-  password  String
-  role      String    @default("STAFF")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-}
-
-model Staff {
-  id        Int       @id @default(autoincrement())
-  name      String
-  position  String
-  email     String    @unique
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  tasks     Task[]
-}
-
-model Room {
-  id          Int       @id @default(autoincrement())
-  number      String    @unique
-  type        String
-  price       Float
-  status      String    @default("AVAILABLE") // AVAILABLE, OCCUPIED, MAINTENANCE
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  bookings    Booking[]
-}
-
-model Booking {
-  id          Int       @id @default(autoincrement())
-  guestName   String
-  guestEmail  String
-  checkIn     DateTime
-  checkOut    DateTime
-  status      String    @default("CONFIRMED") // CONFIRMED, CANCELLED, COMPLETED
-  roomId      Int
-  room        Room      @relation(fields: [roomId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-model Task {
-  id          Int       @id @default(autoincrement())
-  title       String
-  description String?
-  status      String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
-  staffId     Int
-  staff       Staff     @relation(fields: [staffId], references: [id])
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
 model Inventory {
   id        Int      @id @default(autoincrement())
   item      String
   quantity  Int
-  status    String   // AVAILABLE, LOW_STOCK, OUT_OF_STOCK
+  status    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model bookings {
+  id         Int        @id(map: "Booking_pkey") @default(autoincrement())
+  guestName  String
+  guestEmail String
+  checkIn    DateTime
+  checkOut   DateTime
+  status     String     @default("CONFIRMED")
+  roomId     Int
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime
+  rooms      rooms      @relation(fields: [roomId], references: [id], map: "Booking_roomId_fkey")
+  payments   payments[]
+}
+
+model notifications {
+  id         Int       @id @default(autoincrement())
+  title      String    @db.VarChar(100)
+  message    String
+  status     String?   @default("UNREAD") @db.VarChar(20)
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model payments {
+  id             Int       @id @default(autoincrement())
+  user_id        Int?
+  booking_id     Int?
+  amount         Decimal?  @db.Decimal(10, 2)
+  method         String?   @db.VarChar(20)
+  status         String?   @db.VarChar(20)
+  transaction_id String?   @db.VarChar(100)
+  created_at     DateTime? @default(now()) @db.Timestamp(6)
+  bookings       bookings? @relation(fields: [booking_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users          users?    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model room_service {
+  id          Int       @id @default(autoincrement())
+  room_number String    @db.VarChar(10)
+  item        String    @db.VarChar(100)
+  price       Decimal   @db.Decimal(10, 2)
+  status      String?   @default("PENDING") @db.VarChar(20)
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+}
+
+model rooms {
+  id        Int        @id(map: "Room_pkey") @default(autoincrement())
+  number    String     @unique(map: "Room_number_key")
+  type      String
+  price     Float
+  status    String     @default("AVAILABLE")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime
+  bookings  bookings[]
+}
+
+model staff {
+  id        Int      @id(map: "Staff_pkey") @default(autoincrement())
+  name      String
+  position  String
+  email     String   @unique(map: "Staff_email_key")
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  tasks     tasks[]
+}
+
+model tasks {
+  id          Int      @id(map: "Task_pkey") @default(autoincrement())
+  title       String
+  description String?
+  status      String   @default("PENDING")
+  staffId     Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  staff       staff    @relation(fields: [staffId], references: [id], map: "Task_staffId_fkey")
+}
+
+model users {
+  id                Int        @id(map: "User_pkey") @default(autoincrement())
+  name              String
+  email             String     @unique(map: "User_email_key")
+  password          String
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime
+  role              String     @default("STAFF")
+  otp               String?    @db.VarChar(6)
+  otp_expires       DateTime?  @db.Timestamp(6)
+  reset_otp         String?    @db.VarChar(10)
+  reset_otp_expires DateTime?  @db.Timestamptz(6)
+  payments          payments[]
 }

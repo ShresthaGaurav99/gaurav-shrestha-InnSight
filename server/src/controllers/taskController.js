@@ -4,9 +4,9 @@ const db = require('../config/db');
 exports.getAllTasks = async (req, res) => {
   try {
     const query = `
-      SELECT t.*, u.name as staff_name 
+      SELECT t.*, s.name as staff_name 
       FROM tasks t
-      JOIN users u ON t."staffId" = u.id
+      JOIN staff s ON t."staffId" = s.id
       ORDER BY t."createdAt" DESC
     `;
     const result = await db.query(query);
@@ -33,8 +33,8 @@ exports.assignTask = async (req, res) => {
 
   try {
     // 1. Verify staff member exists
-    const userResult = await db.query('SELECT * FROM users WHERE id = $1', [staffId]);
-    if (userResult.rows.length === 0) {
+    const staffResult = await db.query('SELECT * FROM staff WHERE id = $1', [staffId]);
+    if (staffResult.rows.length === 0) {
       return res.status(404).json({ message: 'Staff member not found' });
     }
 

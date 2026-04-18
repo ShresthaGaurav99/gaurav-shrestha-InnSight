@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { getOTPTemplate, getBookingTemplate } = require('./emailTemplates');
 
 const hasValue = (value) => Boolean(value && String(value).trim());
 
@@ -54,19 +55,14 @@ const sendOTPEmail = async (email, otp, purpose = 'registration') => {
   const fromAddress =
     process.env.FROM_EMAIL ||
     process.env.SMTP_FROM ||
-    process.env.SMTP_USER ||
-    process.env.EMAIL_USER;
+    process.env.SMTP_USER;
 
   const mailOptions = {
-    from: fromAddress,
+    from: `"InnSight Official" <${fromAddress}>`,
     to: email,
     subject: `InnSight ${purpose === 'registration' ? 'Registration' : 'Verification'} OTP`,
     text: `Your InnSight OTP is ${otp}. It expires in 10 minutes.`,
-    html: `
-      <h3>InnSight ${purpose === 'registration' ? 'Registration' : 'Verification'}</h3>
-      <p>Your OTP is: <b>${otp}</b></p>
-      <p>This OTP will expire in 10 minutes.</p>
-    `,
+    html: getOTPTemplate(otp, purpose === 'registration' ? 'Registration' : 'Account Verification'),
   };
 
   try {
@@ -79,4 +75,28 @@ const sendOTPEmail = async (email, otp, purpose = 'registration') => {
   }
 };
 
-module.exports = { sendOTPEmail };
+const sendBookingConfirmation = async (email, bookingData) => {
+  const transporter = createTransporter();
+  if (!transporter) return { sent: false };
+
+  const fromAddress = process.env.FROM_EMAIL || process.env.SMTP_USER;
+
+  const mailOptions = {
+    from: `"InnSight Bookings" <${fromAddress}>`,
+    to: email,
+    subject: 'Booking Confirmed - InnSight Hotel',
+    text: `Your booking for Room ${bookingData.roomNumber} is confirmed.`,
+    html: getBookingTemplate(bookingData),
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`[SUCCESS] Booking confirmation sent to ${email}`);
+    return { sent: true };
+  } catch (err) {
+    console.error(`[ERROR] Failed to send booking email: ${err.message}`);
+    return { sent: false };
+  }
+};
+
+module.exports = { sendOTPEmail, sendBookingConfirmation };
