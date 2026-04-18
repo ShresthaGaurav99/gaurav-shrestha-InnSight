@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique
+  password  String
+  role      String    @default("STAFF")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Staff {
+  id        Int       @id @default(autoincrement())
+  name      String
+  position  String
+  email     String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  tasks     Task[]
+}
+
+model Room {
+  id          Int       @id @default(autoincrement())
+  number      String    @unique
+  type        String
+  price       Float
+  status      String    @default("AVAILABLE") // AVAILABLE, OCCUPIED, MAINTENANCE
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  bookings    Booking[]
+}
+
+model Booking {
+  id          Int       @id @default(autoincrement())
+  guestName   String
+  guestEmail  String
+  checkIn     DateTime
+  checkOut    DateTime
+  status      String    @default("CONFIRMED") // CONFIRMED, CANCELLED, COMPLETED
+  roomId      Int
+  room        Room      @relation(fields: [roomId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Task {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  status      String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  staffId     Int
+  staff       Staff     @relation(fields: [staffId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Inventory {
+  id        Int      @id @default(autoincrement())
+  item      String
+  quantity  Int
+  status    String   // AVAILABLE, LOW_STOCK, OUT_OF_STOCK
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
