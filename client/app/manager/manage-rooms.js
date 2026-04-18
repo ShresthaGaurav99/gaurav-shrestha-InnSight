@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { Text, FAB, Appbar, List, Avatar, Chip, Modal, Portal, TextInput, Button } from 'react-native-paper';
+import { FAB, Appbar, List, Avatar, Chip, Modal, Portal, TextInput, Button, Title } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import api from '../../services/api';
 import { COLORS, SIZES } from '../../constants/theme';
-import { Label, Hotel, Edit3, Trash2 } from 'lucide-react-native';
 
 export default function ManageRoomsScreen() {
     const [rooms, setRooms] = useState([]);
     const [loading, setLoading] = useState(false);
     const [visible, setVisible] = useState(false);
 
-    // Form state
     const [roomNumber, setRoomNumber] = useState('');
-    const [type, setType] = useState('Single');
+    const [type, setType] = useState('Standard');
     const [price, setPrice] = useState('');
-    const [capacity, setCapacity] = useState('1');
+    const [capacity, setCapacity] = useState('2');
+    const [title, setTitle] = useState('');
+    const [bedType, setBedType] = useState('Queen Bed');
 
     const router = useRouter();
 
@@ -26,7 +26,7 @@ export default function ManageRoomsScreen() {
     const fetchRooms = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/rooms/all');
+            const res = await api.get('/rooms');
             setRooms(res.data);
         } catch (err) {
             console.error(err);
@@ -42,16 +42,21 @@ export default function ManageRoomsScreen() {
 
         try {
             await api.post('/rooms', {
-                roomNumber,
+                number: roomNumber,
+                title,
                 type,
                 price: parseFloat(price),
                 capacity: parseInt(capacity),
-                description: `Comfortable ${type} room`
+                bedType,
+                description: `Comfortable ${type} room for Kathmandu mid-range stays.`,
+                amenities: ['Free Wi-Fi', 'Breakfast', 'Air Conditioning'],
+                policies: ['Check-in from 2 PM', 'Check-out before 12 PM'],
             });
             setVisible(false);
             fetchRooms();
             setRoomNumber('');
             setPrice('');
+            setTitle('');
         } catch (err) {
             Alert.alert('Error', 'Failed to add room');
         }
@@ -59,13 +64,13 @@ export default function ManageRoomsScreen() {
 
     const renderRoom = ({ item }) => (
         <List.Item
-            title={`Room ${item.room_number}`}
-            description={`${item.type} - Rs. ${item.price}/night`}
+            title={`${item.title || `Room ${item.number}`}`}
+            description={`${item.type} • Room ${item.number} • Rs. ${item.price}/night • ${item.capacity} Guests`}
             style={styles.roomItem}
-            left={props => <Avatar.Icon {...props} icon="door" backgroundColor={item.status === 'available' ? COLORS.accent : COLORS.error} />}
+            left={props => <Avatar.Icon {...props} icon="door" backgroundColor={item.status === 'AVAILABLE' ? COLORS.accent : COLORS.error} />}
             right={props => (
                 <View style={styles.rightActions}>
-                    <Chip style={[styles.statusChip, { backgroundColor: item.status === 'available' ? '#E8F5E9' : '#FFEBEE' }]}>
+                    <Chip style={[styles.statusChip, { backgroundColor: item.status === 'AVAILABLE' ? '#E8F5E9' : '#FFEBEE' }]}>
                         {item.status}
                     </Chip>
                 </View>
@@ -93,9 +98,11 @@ export default function ManageRoomsScreen() {
                 <Modal visible={visible} onDismiss={() => setVisible(false)} contentContainerStyle={styles.modal}>
                     <Title style={styles.modalTitle}>Add New Room</Title>
                     <TextInput label="Room Number" value={roomNumber} onChangeText={setRoomNumber} mode="outlined" style={styles.input} />
-                    <TextInput label="Room Type (e.g. Suite, Double)" value={type} onChangeText={setType} mode="outlined" style={styles.input} />
+                    <TextInput label="Room Title" value={title} onChangeText={setTitle} mode="outlined" style={styles.input} />
+                    <TextInput label="Room Type (Standard, Deluxe, Family, Suite)" value={type} onChangeText={setType} mode="outlined" style={styles.input} />
                     <TextInput label="Price per Night" value={price} onChangeText={setPrice} keyboardType="numeric" mode="outlined" style={styles.input} />
                     <TextInput label="Capacity" value={capacity} onChangeText={setCapacity} keyboardType="numeric" mode="outlined" style={styles.input} />
+                    <TextInput label="Bed Type" value={bedType} onChangeText={setBedType} mode="outlined" style={styles.input} />
                     <Button mode="contained" onPress={handleAddRoom} style={styles.addBtn}>Add Room</Button>
                 </Modal>
             </Portal>
@@ -157,5 +164,3 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.secondary,
     }
 });
-
-import { Title } from 'react-native-paper';

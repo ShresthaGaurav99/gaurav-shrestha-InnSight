@@ -1,12 +1,31 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-// Replace with your local machine's IP address if testing on a physical device
-const API_URL = 'http://192.168.1.75:5000/api'; // Updated to current computer IP
+const getHostIp = () => {
+  const hostUri =
+    Constants.expoGoConfig?.debuggerHost ||
+    Constants.manifest2?.extra?.expoClient?.hostUri ||
+    Constants.expoConfig?.hostUri ||
+    '';
 
+  if (hostUri) {
+    return hostUri.split(':')[0];
+  }
+
+  if (Platform.OS === 'android') {
+    return '10.0.2.2';
+  }
+
+  return 'localhost';
+};
+
+const API_URL = `http://${getHostIp()}:5000/api`;
 
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 10000,
 });
 
 api.interceptors.request.use(async (config) => {

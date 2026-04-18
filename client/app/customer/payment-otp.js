@@ -6,7 +6,7 @@ import api from '../../services/api';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 export default function PaymentOTPScreen() {
-  const { transactionId, method, totalAmount, roomNumber, mockOtp } = useLocalSearchParams();
+  const { transactionId, method, totalAmount, roomNumber, mockOtp, bookingTitle } = useLocalSearchParams();
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(60);
@@ -33,7 +33,7 @@ export default function PaymentOTPScreen() {
       });
 
       Alert.alert('Payment Successful', `Your payment of Rs. ${totalAmount} via ${method} has been confirmed. Transaction ID: ${transactionId}`, [
-        { text: 'Finish', onPress: () => router.replace('/(tabs)/dashboard') }
+        { text: 'Finish', onPress: () => router.replace('/(tabs)/bookings') }
       ]);
     } catch (err) {
       Alert.alert('Verification Failed', err.response?.data?.message || 'Invalid OTP. Please try again.');
@@ -61,6 +61,7 @@ export default function PaymentOTPScreen() {
             <View style={styles.amountBox}>
                <Text style={styles.amountLabel}>Paying to InnSight</Text>
                <Text style={styles.amountValue}>Rs. {totalAmount}</Text>
+               <Text style={styles.amountLabel}>{bookingTitle || `Room ${roomNumber}`}</Text>
             </View>
 
             <TextInput

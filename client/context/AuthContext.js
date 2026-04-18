@@ -21,8 +21,6 @@ export const AuthProvider = ({ children }) => {
       if (token && userInfo) {
         const parsedUser = JSON.parse(userInfo);
         setUser(parsedUser);
-        // Redirect based on role if needed, but usually dashboard is fine as a starting point
-        redirectByRole(parsedUser.role);
       }
     } catch (e) {
       console.log('Failed to fetch user', e);
@@ -44,11 +42,13 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const res = await api.post('/auth/login', { email, password });
-      // Redirect to OTP verification screen
-      router.push({
-        pathname: '/(auth)/verify-otp',
-        params: { email }
-      });
+      const { token, user } = res.data;
+
+      await AsyncStorage.setItem('userToken', token);
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+
+      setUser(user);
+      redirectByRole(user.role);
       return res.data;
     } catch (e) {
       throw e;
@@ -71,9 +71,41 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const resendOTP = async (email) => {
+    try {
+      const res = await api.post('/auth/resend-otp', { email });
+      return res.data;
+    } catch (e) {
+      throw e;
+    }
+  };
+
   const register = async (name, email, password, role) => {
     try {
-      return await api.post('/auth/register', { name, email, password, role });
+      const res = await api.post('/auth/register', { name, email, password, role });
+      router.push({
+        pathname: '/(auth)/verify-otp',
+        params: { email },
+      });
+      return res.data;
+    } catch (e) {
+      throw e;
+    }
+  };
+
+  const requestPasswordReset = async (email) => {
+    try {
+      const res = await api.post('/auth/forgot-password', { email });
+      return res.data;
+    } catch (e) {
+      throw e;
+    }
+  };
+
+  const resetPassword = async (email, otp, password) => {
+    try {
+      const res = await api.post('/auth/reset-password', { email, otp, password });
+      return res.data;
     } catch (e) {
       throw e;
     }
@@ -87,7 +119,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, verifyOTP, register, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        login,
+        verifyOTP,
+        resendOTP,
+        register,
+        requestPasswordReset,
+        resetPassword,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

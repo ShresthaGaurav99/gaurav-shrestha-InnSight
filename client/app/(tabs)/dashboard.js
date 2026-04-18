@@ -67,6 +67,14 @@ export default function DashboardScreen() {
         <Text style={styles.menuText}>Update Room Inventory</Text>
         <Icon name="chevron-right" size={24} color="#bdc3c7" />
       </TouchableOpacity>
+
+      <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/manager/manage-menu')}>
+        <View style={[styles.menuIconContainer, { backgroundColor: '#fff4e5' }]}>
+          <Icon name="silverware-fork-knife" size={24} color="#f39c12" />
+        </View>
+        <Text style={styles.menuText}>Manage Menu & Pricing</Text>
+        <Icon name="chevron-right" size={24} color="#bdc3c7" />
+      </TouchableOpacity>
       
       <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/manager/assign-task')}>
         <View style={[styles.menuIconContainer, { backgroundColor: '#eafaf1' }]}>
@@ -123,7 +131,7 @@ export default function DashboardScreen() {
         <Card.Content>
           <Text style={styles.heroTop}>Best Stays in Nepal</Text>
           <Title style={styles.heroTitle}>Book Your Comfort</Title>
-          <Text style={styles.heroSub}>Prices starting from Rs. 1500</Text>
+          <Text style={styles.heroSub}>Rooms from Rs. 4,200 and meals from Rs. 80</Text>
           <Button 
             mode="contained" 
             style={styles.heroButton}
@@ -144,7 +152,7 @@ export default function DashboardScreen() {
 
       <Text style={styles.sectionTitle}>Menu & Service</Text>
       <View style={styles.serviceRow}>
-        <TouchableOpacity style={styles.serviceBox} onPress={() => router.push('/(tabs)/room-service')}>
+        <TouchableOpacity style={styles.serviceBox} onPress={() => router.push('/customer/menu')}>
           <View style={styles.serviceIconContainer}>
              <Icon name="food-hot-dog" size={24} color="#e74c3c" />
           </View>

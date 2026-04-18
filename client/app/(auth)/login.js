@@ -1,12 +1,13 @@
 import React, { useState, useContext } from 'react';
 import { View, StyleSheet, Alert, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { TextInput, Button, Text, ActivityIndicator } from 'react-native-paper';
+import { TextInput, Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { AuthContext } from '../../context/AuthContext';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useContext(AuthContext);
   const router = useRouter();
@@ -21,6 +22,12 @@ export default function LoginScreen() {
     try {
       await login(email, password);
     } catch (e) {
+      if (e.response?.status === 403 && e.response?.data?.email) {
+        router.push({
+          pathname: '/(auth)/verify-otp',
+          params: { email: e.response.data.email },
+        });
+      }
       Alert.alert('Login Failed', e.response?.data?.message || 'Something went wrong');
     } finally {
       setLoading(false);
@@ -58,11 +65,17 @@ export default function LoginScreen() {
             label="Password"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
+            secureTextEntry={!showPassword}
             style={styles.input}
             mode="outlined"
             outlineColor="#e0e0e0"
             activeOutlineColor="#3498db"
+            right={
+              <TextInput.Icon
+                icon={showPassword ? 'eye-off' : 'eye'}
+                onPress={() => setShowPassword((prev) => !prev)}
+              />
+            }
           />
 
           <Button 
@@ -73,8 +86,12 @@ export default function LoginScreen() {
             loading={loading}
             disabled={loading}
           >
-            {loading ? 'Sending OTP...' : 'Login'}
+            {loading ? 'Logging in...' : 'Login'}
           </Button>
+
+          <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')} style={styles.secondaryLink}>
+            <Text style={styles.secondaryLinkText}>Forgot Password?</Text>
+          </TouchableOpacity>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Don't have an account? </Text>
@@ -100,6 +117,8 @@ const styles = StyleSheet.create({
   input: { marginBottom: 16, backgroundColor: '#fff' },
   button: { marginTop: 8, borderRadius: 12, backgroundColor: '#3498db' },
   buttonContent: { paddingVertical: 8 },
+  secondaryLink: { marginTop: 16, alignItems: 'center' },
+  secondaryLinkText: { color: '#3498db', fontWeight: '500' },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
   footerText: { color: '#7f8c8d' },
   link: { color: '#3498db', fontWeight: 'bold' }

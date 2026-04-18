@@ -6,15 +6,21 @@ import api from '../../services/api';
 
 export default function RoomServiceScreen() {
   const [orders, setOrders] = useState([]);
+  const [menuItems, setMenuItems] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [visible, setVisible] = useState(false);
-  const [item, setItem] = useState('');
+  const [menuItemId, setMenuItemId] = useState('');
   const [room, setRoom] = useState('');
 
   const fetchOrders = async () => {
     try {
-      const res = await api.get('/room-service');
-      setOrders(res.data);
+      const [ordersRes, menuRes] = await Promise.all([api.get('/room-service'), api.get('/menu')]);
+      setOrders(ordersRes.data);
+      const items = (menuRes.data.categories || []).flatMap((category) => category.items || []);
+      setMenuItems(items);
+      if (!menuItemId && items[0]?.id) {
+        setMenuItemId(items[0].id);
+      }
     } catch (e) {
       console.log('Error fetching orders', e);
     }
@@ -34,10 +40,10 @@ export default function RoomServiceScreen() {
 
   const handleOrder = async () => {
     try {
-      await api.post('/room-service', { item, roomNumber: room, price: 10 });
+      await api.post('/room-service', { roomNumber: room, menuItemId, quantity: 1 });
       setVisible(false);
       fetchOrders();
-      setItem('');
+      setMenuItemId(menuItems[0]?.id || '');
       setRoom('');
     } catch (e) {
       console.log('Error creating order', e);
@@ -63,10 +69,10 @@ export default function RoomServiceScreen() {
           <Card style={styles.card}>
             <Card.Content>
               <View style={styles.row}>
-                <Title>{item.item}</Title>
+                <Title>{item.menu_item_name || item.item}</Title>
                 <Chip style={{ backgroundColor: item.status === 'DELIVERED' ? '#4caf50' : '#ff9800' }}>{item.status}</Chip>
               </View>
-              <Paragraph>Room: {item.roomNumber} | Time: {item.time}</Paragraph>
+              <Paragraph>Room: {item.room_number || item.roomNumber} | Qty: {item.quantity || 1} | Total: Rs. {item.total_amount || item.price}</Paragraph>
               {item.status !== 'DELIVERED' && (
                 <View style={styles.actions}>
                   <Button mode="outlined" onPress={() => updateStatus(item.id, 'PREPARING')}>Prep</Button>
@@ -84,7 +90,8 @@ export default function RoomServiceScreen() {
         <Modal visible={visible} onDismiss={() => setVisible(false)} contentContainerStyle={styles.modal}>
           <Title>New Order</Title>
           <TextInput label="Room Number" value={room} onChangeText={setRoom} mode="outlined" style={styles.input} />
-          <TextInput label="Item (e.g. Tea, Coffee)" value={item} onChangeText={setItem} mode="outlined" style={styles.input} />
+          <TextInput label="Menu Item ID" value={menuItemId} onChangeText={setMenuItemId} mode="outlined" style={styles.input} />
+          <Paragraph>Available items: {menuItems.slice(0, 4).map((menuItem) => menuItem.name).join(', ')}</Paragraph>
           <Button mode="contained" onPress={handleOrder} style={{ marginTop: 10 }}>Place Order</Button>
         </Modal>
       </Portal>

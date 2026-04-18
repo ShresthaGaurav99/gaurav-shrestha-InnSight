@@ -52,7 +52,7 @@ export default function BookingsScreen() {
             <Text style={styles.guestLabel}>Guest Name</Text>
             <Title style={styles.guestName}>{item.guestName}</Title>
           </View>
-          <Badge size={28} style={[styles.badge, { backgroundColor: item.status === 'CONFIRMED' ? '#2ecc71' : '#3498db' }]}>
+          <Badge size={28} style={[styles.badge, { backgroundColor: item.status === 'CONFIRMED' ? '#2ecc71' : item.status === 'PENDING' ? '#f39c12' : '#3498db' }]}>
             {item.status}
           </Badge>
         </View>
@@ -70,12 +70,13 @@ export default function BookingsScreen() {
           </View>
           <View style={styles.infoItem}>
             <Icon name="cash" size={16} color="#7f8c8d" />
-            <Text style={styles.infoText}>Paid: Rs. {item.price || '2500'}</Text>
+            <Text style={styles.infoText}>Total: Rs. {item.totalAmount || item.totalamount || item.room_price || '0'}</Text>
           </View>
         </View>
 
         <View style={styles.dateBox}>
           <Text style={styles.dateText}>Stay: {new Date(item.checkIn).toLocaleDateString()} - {new Date(item.checkOut).toLocaleDateString()}</Text>
+          <Text style={styles.dateText}>Payment: {item.paymentStatus || item.paymentstatus || 'PENDING'}</Text>
         </View>
 
         {user?.role?.toLowerCase() === 'manager' && item.status !== 'CANCELLED' && item.status !== 'COMPLETED' && (

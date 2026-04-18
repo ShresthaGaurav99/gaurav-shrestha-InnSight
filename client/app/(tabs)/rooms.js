@@ -33,26 +33,22 @@ export default function RoomsScreen() {
       return;
     }
     router.push({
-      pathname: '/customer/book',
+      pathname: '/customer/room-details',
       params: { 
-          roomId: item.id, 
-          roomNumber: item.number, 
-          price: item.price, 
-          type: item.type,
-          location: 'Kathmandu' // Mock location
+          roomId: item.id,
       }
     });
   };
 
   const renderRoom = ({ item }) => (
     <Card style={styles.roomCard}>
-      <Card.Cover source={{ uri: `https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=500&auto=format&fit=crop` }} />
+      <Card.Cover source={{ uri: item.image_urls?.[0] || 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=500&auto=format&fit=crop' }} />
       <Card.Content style={styles.cardContent}>
         <View style={styles.row}>
           <View>
             <Text style={styles.location}><Icon name="map-marker" size={12} /> Kathmandu, Nepal</Text>
-            <Title style={styles.roomNumber}>Room {item.number}</Title>
-            <Text style={styles.roomType}>{item.type} Premier</Text>
+            <Title style={styles.roomNumber}>{item.title || `Room ${item.number}`}</Title>
+            <Text style={styles.roomType}>{item.type} • {item.capacity || 2} Guests • {item.bed_type || 'Queen Bed'}</Text>
           </View>
           <View style={styles.priceContainer}>
             <Text style={styles.priceValue}>Rs. {item.price}</Text>

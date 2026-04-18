@@ -1,17 +1,38 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { View, StyleSheet, Alert, ScrollView } from 'react-native';
-import { Text, TextInput, Button, Card, Title, Appbar, Avatar, Divider } from 'react-native-paper';
+import { Text, TextInput, Button, Card, Title, Appbar, Avatar, Divider, ActivityIndicator } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { AuthContext } from '../../context/AuthContext';
+import api from '../../services/api';
 
 export default function BookingScreen() {
-  const { roomId, roomNumber, price, type } = useLocalSearchParams();
+  const { roomId, roomNumber, price, type, title } = useLocalSearchParams();
   const { user } = useContext(AuthContext);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [phone, setPhone] = useState('98');
   const [loading, setLoading] = useState(false);
+  const [room, setRoom] = useState(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const fetchRoom = async () => {
+      if (!roomId) return;
+      try {
+        const response = await api.get(`/rooms/${roomId}`);
+        setRoom(response.data);
+      } catch (error) {
+        console.log('Failed to fetch room details', error);
+      }
+    };
+
+    fetchRoom();
+  }, [roomId]);
+
+  const displayPrice = parseFloat(price || room?.price || 0);
+  const displayRoomNumber = roomNumber || room?.number;
+  const displayType = type || room?.type;
+  const displayTitle = title || room?.title || `${displayType || 'Room'} Stay`;
 
   const calculateNights = () => {
     if (!checkIn || !checkOut) return 1;
@@ -23,7 +44,7 @@ export default function BookingScreen() {
   };
 
   const nights = calculateNights();
-  const roomAmount = parseFloat(price) * nights;
+  const roomAmount = displayPrice * nights;
   const vat = roomAmount * 0.13;
   const grandTotal = roomAmount + vat;
 
@@ -43,15 +64,20 @@ export default function BookingScreen() {
       params: { 
         roomId, 
         roomNumber, 
-        price, 
+        price: displayPrice, 
         checkIn, 
         checkOut, 
         totalAmount: grandTotal.toFixed(2),
-        phone 
+        phone,
+        title: displayTitle,
+        type: displayType,
       }
     });
   };
 
+  if (!room && !price) {
+    return <ActivityIndicator style={{ flex: 1 }} />;
+  }
 
   return (
     <View style={styles.container}>
@@ -66,9 +92,9 @@ export default function BookingScreen() {
           <Card.Content style={styles.row}>
             <View>
               <Text style={styles.locationText}>Location: Kathmandu, Nepal</Text>
-              <Title style={styles.roomTitle}>Room {roomNumber}</Title>
-              <Text style={styles.roomType}>{type} Room</Text>
-              <Text style={styles.price}>Rs. {price} / night</Text>
+              <Title style={styles.roomTitle}>{displayTitle}</Title>
+              <Text style={styles.roomType}>Room {displayRoomNumber} • {displayType}</Text>
+              <Text style={styles.price}>Rs. {displayPrice} / night</Text>
             </View>
             <Avatar.Icon size={64} icon="bed" backgroundColor="#ebf5fb" color="#3498db" />
           </Card.Content>

@@ -4,10 +4,15 @@ import { TextInput, Button, Text, SegmentedButtons } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { AuthContext } from '../../context/AuthContext';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [role, setRole] = useState('staff');
   const [loading, setLoading] = useState(false);
   const { register } = useContext(AuthContext);
@@ -19,11 +24,25 @@ export default function RegisterScreen() {
       return;
     }
 
+    if (!EMAIL_REGEX.test(email.trim())) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    if (password.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters long');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
     setLoading(true);
     try {
       await register(name, email, password, role);
-      Alert.alert('Success', 'Registration successful! Please login to verify your email.');
-      router.push('/(auth)/login');
+      Alert.alert('Success', 'Registration successful! Enter the OTP sent to your email.');
     } catch (e) {
       Alert.alert('Registration Failed', e.response?.data?.message || 'Error occurred');
     } finally {
@@ -84,11 +103,34 @@ export default function RegisterScreen() {
             label="Password"
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
+            secureTextEntry={!showPassword}
             style={styles.input}
             mode="outlined"
             outlineColor="#e0e0e0"
             activeOutlineColor="#3498db"
+            right={
+              <TextInput.Icon
+                icon={showPassword ? 'eye-off' : 'eye'}
+                onPress={() => setShowPassword((prev) => !prev)}
+              />
+            }
+          />
+
+          <TextInput
+            label="Confirm Password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry={!showConfirmPassword}
+            style={styles.input}
+            mode="outlined"
+            outlineColor="#e0e0e0"
+            activeOutlineColor="#3498db"
+            right={
+              <TextInput.Icon
+                icon={showConfirmPassword ? 'eye-off' : 'eye'}
+                onPress={() => setShowConfirmPassword((prev) => !prev)}
+              />
+            }
           />
 
           <Button 

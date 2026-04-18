@@ -108,11 +108,11 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="bookings"
         options={{
-          title: userRole === 'customer' ? 'My Stay' : 'Guest List',
+          title: userRole === 'customer' ? 'My Bookings' : 'Guest List',
           tabBarIcon: ({ color, size }) => (
             <Icon name="book" size={size} color={color} />
           ),
-          href: userRole === 'customer' ? '/customer/book' : '/(tabs)/bookings'
+          href: '/(tabs)/bookings'
         }}
       />
       

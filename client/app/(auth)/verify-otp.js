@@ -7,8 +7,9 @@ import { AuthContext } from '../../context/AuthContext';
 export default function VerifyOTPScreen() {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const { email } = useLocalSearchParams();
-  const { verifyOTP } = useContext(AuthContext);
+  const { verifyOTP, resendOTP } = useContext(AuthContext);
   const router = useRouter();
 
   const handleVerify = async () => {
@@ -28,6 +29,18 @@ export default function VerifyOTPScreen() {
     }
   };
 
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      const response = await resendOTP(email);
+      Alert.alert('OTP Sent', response.message);
+    } catch (e) {
+      Alert.alert('Resend Failed', e.response?.data?.message || 'Could not resend OTP');
+    } finally {
+      setResending(false);
+    }
+  };
+
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -36,12 +49,12 @@ export default function VerifyOTPScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={styles.appName}>InnSight</Text>
-          <Text style={styles.subtitle}>Verification</Text>
+          <Text style={styles.subtitle}>Email Verification</Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.title}>Enter OTP</Text>
-          <Text style={styles.infoText}>We sent a 6-digit code to {email}</Text>
+          <Text style={styles.title}>Verify Your Email</Text>
+          <Text style={styles.infoText}>We sent a 6-digit registration code to {email}</Text>
 
           <TextInput
             label="6-Digit OTP"
@@ -63,7 +76,17 @@ export default function VerifyOTPScreen() {
             loading={loading}
             disabled={loading}
           >
-            {loading ? 'Verifying...' : 'Verify & Login'}
+            {loading ? 'Verifying...' : 'Verify & Continue'}
+          </Button>
+
+          <Button
+            mode="text"
+            onPress={handleResend}
+            style={styles.secondaryButton}
+            disabled={loading || resending}
+            loading={resending}
+          >
+            {resending ? 'Sending...' : 'Resend OTP'}
           </Button>
 
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -87,6 +110,7 @@ const styles = StyleSheet.create({
   input: { marginBottom: 16, backgroundColor: '#fff', textAlign: 'center', fontSize: 20, letterSpacing: 5 },
   button: { marginTop: 8, borderRadius: 12, backgroundColor: '#3498db' },
   buttonContent: { paddingVertical: 8 },
+  secondaryButton: { marginTop: 8 },
   backButton: { marginTop: 24, alignItems: 'center' },
   backText: { color: '#3498db', fontWeight: '500' }
 });

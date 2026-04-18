@@ -1,23 +1,26 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { View, StyleSheet, Alert, TouchableOpacity } from 'react-native';
 import { Text, Title, Button, Card, Appbar, List, Avatar, ActivityIndicator } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import api from '../../services/api';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { AuthContext } from '../../context/AuthContext';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 
 export default function PaymentScreen() {
-  const { roomId, roomNumber, totalAmount, checkIn, checkOut, phone } = useLocalSearchParams();
+  const { roomId, roomNumber, totalAmount, checkIn, checkOut, phone, title } = useLocalSearchParams();
   const [loading, setLoading] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState('eSewa');
+  const { user } = useContext(AuthContext);
   const router = useRouter();
 
   const handleProceed = async () => {
     setLoading(true);
     try {
-      // 1. Create booking first (to have a booking ID)
       const bookingRes = await api.post('/bookings', {
-        guestName: 'InnSight Guest', 
-        guestEmail: 'guest@innsight.com',
+        guestName: user?.name || 'InnSight Guest', 
+        guestEmail: user?.email || 'guest@innsight.com',
         phone,
         checkIn,
         checkOut,
@@ -26,14 +29,42 @@ export default function PaymentScreen() {
       
       const bookingId = bookingRes.data.booking.id;
 
-      // 2. Initiate Payment API
+      const normalized = String(selectedMethod || 'Cash').toLowerCase();
+
+      if (normalized === 'esewa') {
+        const payRes = await api.post('/payments/esewa/initiate', { bookingId });
+        const redirectUri = Linking.createURL('payment-result');
+        const result = await WebBrowser.openAuthSessionAsync(payRes.data.formUrl, redirectUri);
+        if (result.type !== 'success') {
+          Alert.alert('Payment cancelled', 'You cancelled the payment or it did not complete.');
+          return;
+        }
+        Alert.alert('Payment result received', 'Your eSewa payment has been processed. Check My Bookings for status.', [
+          { text: 'OK', onPress: () => router.replace('/(tabs)/bookings') },
+        ]);
+        return;
+      }
+
+      if (normalized === 'khalti') {
+        const payRes = await api.post('/payments/khalti/initiate', { bookingId, phone });
+        const redirectUri = Linking.createURL('payment-result');
+        const result = await WebBrowser.openAuthSessionAsync(payRes.data.paymentUrl, redirectUri);
+        if (result.type !== 'success') {
+          Alert.alert('Payment cancelled', 'You cancelled the payment or it did not complete.');
+          return;
+        }
+        Alert.alert('Payment result received', 'Your Khalti payment has been processed. Check My Bookings for status.', [
+          { text: 'OK', onPress: () => router.replace('/(tabs)/bookings') },
+        ]);
+        return;
+      }
+
       const payRes = await api.post('/payments/initiate', {
         bookingId,
         amount: totalAmount,
         method: selectedMethod
       });
 
-      // 3. Redirect to OTP Screen
       router.push({
         pathname: '/customer/payment-otp',
         params: {
@@ -41,13 +72,14 @@ export default function PaymentScreen() {
           method: selectedMethod,
           totalAmount,
           roomNumber,
-          mockOtp: payRes.data.mockOtp
+          mockOtp: payRes.data.mockOtp,
+          bookingTitle: title,
         }
       });
 
     } catch (err) {
       console.error(err);
-      Alert.alert('Payment Error', 'Unable to process payment request. Please try again.');
+      Alert.alert('Payment Error', err.response?.data?.message || 'Unable to process payment request. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -66,7 +98,8 @@ export default function PaymentScreen() {
             <Text style={styles.summaryLabel}>Final Payable Amount</Text>
             <Text style={styles.amountText}>Rs. {totalAmount}</Text>
             <View style={styles.divider} />
-            <Text style={styles.detailText}>Room {roomNumber} • Kathmandu, Nepal</Text>
+            <Text style={styles.detailText}>{title || `Room ${roomNumber}`} • Kathmandu, Nepal</Text>
+            <Text style={styles.detailText}>Guest: {user?.name || 'Hotel Guest'}</Text>
           </Card.Content>
         </Card>
 
