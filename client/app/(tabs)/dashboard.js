@@ -116,7 +116,9 @@ export default function DashboardScreen() {
         <Icon name="chevron-right" size={24} color="#bdc3c7" />
       </TouchableOpacity>
     </View>
-  );
+    );
+  };
+
 
   const renderStaffDashboard = () => (
     <View style={styles.content}>
@@ -253,7 +255,7 @@ const styles = StyleSheet.create({
   heroSub: { color: '#fff', fontSize: 14, opacity: 0.9 },
   heroButton: { backgroundColor: '#fff', marginTop: 20, borderRadius: 12 },
   destinationScroll: { flexDirection: 'row', marginBottom: 10 },
-  destDot: { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 10, borderWeight: 1, borderColor: '#f0f0f0', elevation: 1 },
+  destDot: { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: '#f0f0f0', elevation: 1 },
   destText: { color: '#34495e', fontWeight: '600' },
   serviceRow: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 8 },
   serviceBox: { alignItems: 'center' },
