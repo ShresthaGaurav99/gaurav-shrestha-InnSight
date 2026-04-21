@@ -3,135 +3,195 @@ import { Tabs } from 'expo-router';
 import { IconButton } from 'react-native-paper';
 import { AuthContext } from '../../context/AuthContext';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { View } from 'react-native';
+import { View, Platform, StyleSheet, Text } from 'react-native';
+
+function TabIcon({ name, label, color, focused }) {
+  return (
+    <View style={tabStyles.iconWrap}>
+      <Icon name={name} size={24} color={color} />
+      {focused && <View style={tabStyles.activeIndicator} />}
+    </View>
+  );
+}
 
 export default function TabsLayout() {
   const { logout, user } = useContext(AuthContext);
   const userRole = user?.role?.toLowerCase() || 'customer';
 
+  const isTabVisible = (tabName) => {
+    switch (userRole) {
+      case 'manager':
+      case 'admin':
+        return ['dashboard', 'inventory', 'billing', 'staff-list', 'profile'].includes(tabName);
+      case 'staff':
+        return ['dashboard', 'rooms', 'tasks', 'profile'].includes(tabName);
+      case 'customer':
+      case 'guest':
+        return ['dashboard', 'rooms', 'bookings', 'profile'].includes(tabName);
+      default:
+        return ['dashboard', 'profile'].includes(tabName);
+    }
+  };
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#3498db',
+        tabBarActiveTintColor: '#1A1D2E',
+        tabBarInactiveTintColor: '#AAAAAA',
+        tabBarShowLabel: true,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '700',
+          marginTop: -2,
+          marginBottom: Platform.OS === 'ios' ? 0 : 4,
+        },
+        tabBarStyle: {
+          backgroundColor: '#FFFFFF',
+          borderTopWidth: 0,
+          height: Platform.OS === 'ios' ? 90 : 70,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+          paddingTop: 10,
+          elevation: 0,
+          shadowColor: '#1A1D2E',
+          shadowOffset: { width: 0, height: -8 },
+          shadowOpacity: 0.08,
+          shadowRadius: 20,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+        },
+        headerStyle: {
+          backgroundColor: '#F4F6FF',
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 0,
+        },
+        headerTitleStyle: {
+          fontWeight: '800',
+          fontSize: 17,
+          color: '#1A1D2E',
+          letterSpacing: -0.3,
+        },
         headerRight: () => (
-          <View style={{ flexDirection: 'row' }}>
-            <IconButton icon="logout" size={24} onPress={logout} />
+          <View style={{ marginRight: 16 }}>
+            <IconButton
+              icon="logout-variant"
+              size={22}
+              iconColor="#E74C3C"
+              onPress={logout}
+              style={{ margin: 0 }}
+            />
           </View>
         ),
       }}
     >
+      {/* HOME */}
       <Tabs.Screen
         name="dashboard"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="home" size={size} color={color} />
+          href: isTabVisible('dashboard') ? undefined : null,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name={focused ? 'home' : 'home-outline'} label="Home" color={color} focused={focused} />
           ),
         }}
       />
+
+      {/* EXPLORE / ROOMS */}
       <Tabs.Screen
         name="rooms"
         options={{
-          title: userRole === 'customer' ? 'Explore Rooms' : 'Room Status',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="bed" size={size} color={color} />
+          title: 'Explore',
+          href: isTabVisible('rooms') ? undefined : null,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name={focused ? 'compass' : 'compass-outline'} label="Explore" color={color} focused={focused} />
           ),
         }}
       />
-      
-      {/* Hotel Manager Only Tabs */}
-      {userRole === 'manager' && (
-        <>
-          <Tabs.Screen
-            name="staff-list"
-            options={{
-              title: 'Employees',
-              tabBarIcon: ({ color, size }) => (
-                <Icon name="account-group" size={size} color={color} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="inventory"
-            options={{
-              title: 'Hotel Stock',
-              tabBarIcon: ({ color, size }) => (
-                <Icon name="package-variant" size={size} color={color} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="billing"
-            options={{
-              title: 'Accounts',
-              tabBarIcon: ({ color, size }) => (
-                <Icon name="cash-register" size={size} color={color} />
-              ),
-            }}
-          />
-        </>
-      )}
 
-      {/* Staff & Manager Tabs */}
-      {(userRole === 'staff' || userRole === 'manager') && (
-        <>
-          <Tabs.Screen
-            name="tasks"
-            options={{
-              title: 'Duties',
-              tabBarIcon: ({ color, size }) => (
-                <Icon name="clipboard-check" size={size} color={color} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="housekeeping"
-            options={{
-              title: 'Cleaning',
-              tabBarIcon: ({ color, size }) => (
-                <Icon name="broom" size={size} color={color} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="room-service"
-            options={{
-              title: 'F&B Service',
-              tabBarIcon: ({ color, size }) => (
-                <Icon name="room-service" size={size} color={color} />
-              ),
-            }}
-          />
-        </>
-      )}
-
+      {/* BOOKINGS */}
       <Tabs.Screen
         name="bookings"
         options={{
-          title: userRole === 'customer' ? 'My Bookings' : 'Guest List',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="book" size={size} color={color} />
+          title: 'Bookings',
+          href: isTabVisible('bookings') ? undefined : null,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name={focused ? 'calendar-check' : 'calendar-check-outline'} label="Bookings" color={color} focused={focused} />
           ),
-          href: '/(tabs)/bookings'
         }}
       />
-      
+
+      {/* INVENTORY (manager) */}
+      <Tabs.Screen
+        name="inventory"
+        options={{
+          title: 'Inventory',
+          href: isTabVisible('inventory') ? undefined : null,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name={focused ? 'package-variant-closed' : 'package-variant'} label="Inventory" color={color} focused={focused} />
+          ),
+        }}
+      />
+
+      {/* BILLING (manager) */}
+      <Tabs.Screen
+        name="billing"
+        options={{
+          title: 'Billing',
+          href: isTabVisible('billing') ? undefined : null,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name={focused ? 'cash-register' : 'cash-register'} label="Billing" color={color} focused={focused} />
+          ),
+        }}
+      />
+
+      {/* STAFF (manager) */}
+      <Tabs.Screen
+        name="staff-list"
+        options={{
+          title: 'Staff',
+          href: isTabVisible('staff-list') ? undefined : null,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name={focused ? 'account-group' : 'account-group-outline'} label="Staff" color={color} focused={focused} />
+          ),
+        }}
+      />
+
+      {/* TASKS (staff) */}
+      <Tabs.Screen
+        name="tasks"
+        options={{
+          title: 'Tasks',
+          href: isTabVisible('tasks') ? undefined : null,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name={focused ? 'clipboard-list' : 'clipboard-list-outline'} label="Tasks" color={color} focused={focused} />
+          ),
+        }}
+      />
+
+      {/* PROFILE */}
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Account',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="account-circle" size={size} color={color} />
+          title: 'Profile',
+          href: isTabVisible('profile') ? undefined : null,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name={focused ? 'account-circle' : 'account-circle-outline'} label="Profile" color={color} focused={focused} />
           ),
         }}
       />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          title: 'Notifications',
-          href: null,
-        }}
-      />
+
+      {/* ── Fully Hidden ── */}
+      <Tabs.Screen name="housekeeping" options={{ href: null, tabBarButton: () => null }} />
+      <Tabs.Screen name="room-service" options={{ href: null, tabBarButton: () => null }} />
+      <Tabs.Screen name="notifications" options={{ href: null, tabBarButton: () => null }} />
     </Tabs>
   );
 }
+
+const tabStyles = StyleSheet.create({
+  iconWrap: { alignItems: 'center', justifyContent: 'center' },
+  activeIndicator: {
+    width: 4, height: 4, borderRadius: 2,
+    backgroundColor: '#1A1D2E', marginTop: 4,
+  },
+});
