@@ -65,7 +65,7 @@ export default function VerifyOTPScreen() {
             style={styles.input}
             mode="outlined"
             outlineColor="#e0e0e0"
-            activeOutlineColor="#3498db"
+            activeOutlineColor="#1A1D2E"
           />
 
           <Button 
@@ -99,18 +99,18 @@ export default function VerifyOTPScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8faff' },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 24 },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 28 },
   header: { marginBottom: 40, alignItems: 'center' },
-  appName: { fontSize: 32, fontWeight: 'bold', color: '#2c3e50', letterSpacing: 1 },
-  subtitle: { fontSize: 16, color: '#7f8c8d', marginTop: 4 },
-  card: { backgroundColor: '#ffffff', borderRadius: 20, padding: 24, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
-  title: { fontSize: 24, fontWeight: '700', color: '#2c3e50', marginBottom: 8 },
-  infoText: { fontSize: 14, color: '#95a5a6', marginBottom: 24 },
-  input: { marginBottom: 16, backgroundColor: '#fff', textAlign: 'center', fontSize: 20, letterSpacing: 5 },
-  button: { marginTop: 8, borderRadius: 12, backgroundColor: '#3498db' },
-  buttonContent: { paddingVertical: 8 },
+  appName: { fontSize: 42, fontWeight: '900', color: '#1A1D2E', letterSpacing: -1, marginBottom: 4 },
+  subtitle: { fontSize: 16, color: '#666', fontWeight: '500' },
+  card: { backgroundColor: '#ffffff', width: '100%' },
+  title: { fontSize: 24, fontWeight: '800', color: '#1A1D2E', marginBottom: 8 },
+  infoText: { fontSize: 14, color: '#888', marginBottom: 24, fontWeight: '400', lineHeight: 20 },
+  input: { marginBottom: 24, backgroundColor: '#fff', fontSize: 24, fontWeight: '700' },
+  button: { borderRadius: 16, backgroundColor: '#1A1D2E', elevation: 0 },
+  buttonContent: { paddingVertical: 12 },
   secondaryButton: { marginTop: 8 },
-  backButton: { marginTop: 24, alignItems: 'center' },
-  backText: { color: '#3498db', fontWeight: '500' }
+  backButton: { marginTop: 32, alignItems: 'center' },
+  backText: { color: '#1A1D2E', fontWeight: '800', fontSize: 14 }
 });

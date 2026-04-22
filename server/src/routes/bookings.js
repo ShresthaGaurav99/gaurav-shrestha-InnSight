@@ -5,73 +5,59 @@ const { auth, authorize } = require('../middleware/auth');
 
 // Create a booking
 router.post('/', auth, async (req, res) => {
-    const { roomId, checkIn, checkOut, totalPrice } = req.body;
+    const { roomId, checkIn, checkOut, totalAmount, guestName, guestEmail, phone } = req.body;
     const userId = req.user.id;
 
     try {
-        const query = `
-      INSERT INTO bookings (user_id, room_id, check_in, check_out, total_price, status) 
-      VALUES (?, ?, ?, ?, ?, ?)
-    `;
-        const params = [userId, roomId, checkIn, checkOut, totalPrice, 'confirmed'];
+        const result = await db.query(
+            `INSERT INTO bookings ("roomId", "checkIn", "checkOut", "totalAmount", "guestName", "guestEmail", "phone", status, "createdAt", "updatedAt") 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) RETURNING id`,
+            [roomId, checkIn, checkOut, totalAmount, guestName, guestEmail, phone, 'CONFIRMED']
+        );
+        
+        const bookingId = result.rows[0].id;
 
-        db.db.run(query, params, function (err) {
-            if (err) return res.status(500).json({ message: err.message });
-            const bookingId = this.lastID; // Wait, for UUIDs this won't work as expected if we use UUID in SQL.
-            // SQLite uses integer ROWID by default unless we use text primary keys.
-            // We will stick to INTEGER PRIMARY KEY AUTOINCREMENT for simplicity in SQLite mode.
+        // Update room status
+        await db.query('UPDATE rooms SET status = $1 WHERE id = $2', ['OCCUPIED', roomId]);
 
-            // Update room status
-            db.db.run('UPDATE rooms SET status = ? WHERE id = ?', ['occupied', roomId]);
-
-            // Fetch the inserted booking
-            db.db.get('SELECT * FROM bookings WHERE id = ?', [bookingId], (err2, row) => {
-                if (err2) return res.status(500).json({ message: 'Error fetching created booking' });
-                res.status(201).json(row);
-            });
-        });
-
+        // Fetch the inserted booking
+        const fullBooking = await db.query('SELECT * FROM bookings WHERE id = $1', [bookingId]);
+        res.status(201).json(fullBooking.rows[0]);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server error' });
+        console.error('Create booking error:', err);
+        res.status(500).json({ message: 'Server error', error: err.message });
     }
 });
 
 // Get user bookings
 router.get('/my', auth, async (req, res) => {
     try {
-        const query = `
-      SELECT b.*, r.room_number, r.type 
-      FROM bookings b 
-      JOIN rooms r ON b.room_id = r.id 
-      WHERE b.user_id = ? 
-      ORDER BY b.created_at DESC
-    `;
-        db.db.all(query, [req.user.id], (err, rows) => {
-            if (err) return res.status(500).json({ message: err.message });
-            res.json(rows);
-        });
+        const result = await db.query(
+            `SELECT b.*, r.room_number, r.type 
+             FROM bookings b 
+             JOIN rooms r ON b."roomId" = r.id 
+             WHERE b."guestEmail" = (SELECT email FROM users WHERE id = $1)
+             ORDER BY b."createdAt" DESC`,
+            [req.user.id]
+        );
+        res.json(result.rows);
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error', error: err.message });
     }
 });
 
 // Get ALL bookings (Manager only)
 router.get('/all', [auth, authorize('manager')], async (req, res) => {
     try {
-        const query = `
-      SELECT b.*, r.room_number, r.type, u.full_name as customerName 
-      FROM bookings b 
-      JOIN rooms r ON b.room_id = r.id 
-      JOIN users u ON b.user_id = u.id
-      ORDER BY b.created_at DESC
-    `;
-        db.db.all(query, [], (err, rows) => {
-            if (err) return res.status(500).json({ message: err.message });
-            res.json(rows);
-        });
+        const result = await db.query(
+            `SELECT b.*, r.room_number, r.type 
+             FROM bookings b 
+             JOIN rooms r ON b."roomId" = r.id 
+             ORDER BY b."createdAt" DESC`
+        );
+        res.json(result.rows);
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error', error: err.message });
     }
 });
 

@@ -19,26 +19,17 @@ export default function TabsLayout() {
   const userRole = user?.role?.toLowerCase() || 'customer';
 
   const isTabVisible = (tabName) => {
-    switch (userRole) {
-      case 'manager':
-      case 'admin':
-        return ['dashboard', 'inventory', 'billing', 'staff-list', 'profile'].includes(tabName);
-      case 'staff':
-        return ['dashboard', 'rooms', 'tasks', 'profile'].includes(tabName);
-      case 'customer':
-      case 'guest':
-        return ['dashboard', 'rooms', 'bookings', 'profile'].includes(tabName);
-      default:
-        return ['dashboard', 'profile'].includes(tabName);
-    }
+    // Keep it minimal: Home, Explore, Bookings, Profile
+    return ['dashboard', 'rooms', 'bookings', 'profile'].includes(tabName);
   };
 
   return (
     <Tabs
       screenOptions={{
+        headerShown: false,
         tabBarActiveTintColor: '#1A1D2E',
         tabBarInactiveTintColor: '#AAAAAA',
-        tabBarShowLabel: true,
+        tabBarShowLabel: false,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '700',
@@ -181,9 +172,9 @@ export default function TabsLayout() {
       />
 
       {/* ── Fully Hidden ── */}
-      <Tabs.Screen name="housekeeping" options={{ href: null, tabBarButton: () => null }} />
-      <Tabs.Screen name="room-service" options={{ href: null, tabBarButton: () => null }} />
-      <Tabs.Screen name="notifications" options={{ href: null, tabBarButton: () => null }} />
+      <Tabs.Screen name="housekeeping" options={{ href: null }} />
+      <Tabs.Screen name="room-service" options={{ href: null }} />
+      <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
   );
 }

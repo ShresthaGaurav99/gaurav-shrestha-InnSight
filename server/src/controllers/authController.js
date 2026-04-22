@@ -345,3 +345,21 @@ exports.getMe = async (req, res) => {
     return res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+
+// 8. Update User Profile
+exports.updateProfile = async (req, res) => {
+  const { name } = req.body;
+  if (!name || name.trim().length === 0) {
+     return res.status(400).json({ message: 'Name cannot be empty' });
+  }
+  try {
+    const result = await db.query(
+      'UPDATE users SET name = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING id, name, email, role',
+      [name.trim(), req.user.userId]
+    );
+    if(result.rows.length === 0) return res.status(404).json({ message: 'User not found' });
+    return res.json({ message: 'Profile updated successfully', user: result.rows[0] });
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};

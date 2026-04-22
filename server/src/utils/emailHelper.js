@@ -1,3 +1,4 @@
+// Nodemon restart trigger for updated .env
 const nodemailer = require('nodemailer');
 const { getOTPTemplate, getBookingTemplate } = require('./emailTemplates');
 
@@ -44,6 +45,15 @@ const sendOTPEmail = async (email, otp, purpose = 'registration') => {
   console.log('\n=========================================');
   console.log(`OTP for ${email}: ${otp}`);
   console.log('=========================================\n');
+
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const logPath = path.join(__dirname, '..', '..', 'latest_otp.txt');
+    fs.writeFileSync(logPath, `Email: ${email}\nOTP: ${otp}\nTime: ${new Date().toISOString()}`);
+  } catch (err) {
+    console.error('Failed to write OTP to file:', err);
+  }
 
   const transporter = createTransporter();
 

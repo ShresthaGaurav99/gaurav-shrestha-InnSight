@@ -1,9 +1,80 @@
 const db = require('../config/db');
 const { roomSeeds, menuCategories, menuItemSeeds } = require('../data/seedData');
 
-const createBaseTables = async () => {
+const createTables = async () => {
   await db.query('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"');
 
+  // 1. Users
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      name VARCHAR(100) NOT NULL,
+      email VARCHAR(100) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL,
+      role VARCHAR(20) CHECK (role IN ('customer', 'staff', 'manager')) NOT NULL,
+      otp VARCHAR(10),
+      otp_expires TIMESTAMP WITH TIME ZONE,
+      reset_otp VARCHAR(10),
+      reset_otp_expires TIMESTAMP WITH TIME ZONE,
+      "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // 2. Rooms
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS rooms (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      room_number VARCHAR(10) UNIQUE NOT NULL,
+      type VARCHAR(50) NOT NULL,
+      price DECIMAL(10, 2) NOT NULL,
+      status VARCHAR(20) DEFAULT 'AVAILABLE',
+      capacity INTEGER DEFAULT 2,
+      title VARCHAR(120),
+      bed_type VARCHAR(60),
+      size_sqft INTEGER,
+      amenities JSONB DEFAULT '[]'::jsonb,
+      description TEXT,
+      policies JSONB DEFAULT '[]'::jsonb,
+      image_urls JSONB DEFAULT '[]'::jsonb,
+      location VARCHAR(120) DEFAULT 'Kathmandu, Nepal',
+      "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // 3. Bookings
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS bookings (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      "roomId" UUID REFERENCES rooms(id) ON DELETE CASCADE,
+      "guestName" VARCHAR(100) NOT NULL,
+      "guestEmail" VARCHAR(100) NOT NULL,
+      phone VARCHAR(20),
+      "checkIn" DATE NOT NULL,
+      "checkOut" DATE NOT NULL,
+      "totalAmount" DECIMAL(10, 2) NOT NULL,
+      status VARCHAR(20) DEFAULT 'CONFIRMED',
+      "paymentStatus" VARCHAR(20) DEFAULT 'PENDING',
+      "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // 4. Tasks
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      title VARCHAR(200) NOT NULL,
+      description TEXT,
+      status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'IN-PROGRESS', 'COMPLETED')),
+      "staffId" UUID REFERENCES users(id) ON DELETE SET NULL,
+      "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // 5. Menu
   await db.query(`
     CREATE TABLE IF NOT EXISTS menu_categories (
       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -29,80 +100,43 @@ const createBaseTables = async () => {
       "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     )
   `);
-};
 
-const alterTables = async () => {
-  const statements = [
-    `ALTER TABLE rooms ADD COLUMN IF NOT EXISTS title VARCHAR(120)`,
-    `ALTER TABLE rooms ADD COLUMN IF NOT EXISTS capacity INTEGER DEFAULT 2`,
-    `ALTER TABLE rooms ADD COLUMN IF NOT EXISTS bed_type VARCHAR(60)`,
-    `ALTER TABLE rooms ADD COLUMN IF NOT EXISTS size_sqft INTEGER`,
-    `ALTER TABLE rooms ADD COLUMN IF NOT EXISTS amenities JSONB DEFAULT '[]'::jsonb`,
-    `ALTER TABLE rooms ADD COLUMN IF NOT EXISTS description TEXT`,
-    `ALTER TABLE rooms ADD COLUMN IF NOT EXISTS policies JSONB DEFAULT '[]'::jsonb`,
-    `ALTER TABLE rooms ADD COLUMN IF NOT EXISTS image_urls JSONB DEFAULT '[]'::jsonb`,
-    `ALTER TABLE rooms ADD COLUMN IF NOT EXISTS location VARCHAR(120) DEFAULT 'Kathmandu, Nepal'`,
-    `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS phone VARCHAR(20)`,
-    `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS nights INTEGER DEFAULT 1`,
-    `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "guestCount" INTEGER DEFAULT 1`,
-    `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "roomRate" DECIMAL(10, 2) DEFAULT 0`,
-    `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "vatAmount" DECIMAL(10, 2) DEFAULT 0`,
-    `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "totalAmount" DECIMAL(10, 2) DEFAULT 0`,
-    `ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "paymentStatus" VARCHAR(20) DEFAULT 'PENDING'`,
-    `ALTER TABLE payments ADD COLUMN IF NOT EXISTS gateway VARCHAR(30) DEFAULT 'CASH'`,
-    `ALTER TABLE payments ADD COLUMN IF NOT EXISTS reference_type VARCHAR(30) DEFAULT 'BOOKING'`,
-    `ALTER TABLE payments DROP COLUMN IF EXISTS reference_id CASCADE`,
-    `ALTER TABLE payments ADD COLUMN reference_id INTEGER`,
-    `ALTER TABLE payments ADD COLUMN IF NOT EXISTS provider_payload JSONB DEFAULT '{}'::jsonb`,
-    `ALTER TABLE room_service DROP COLUMN IF EXISTS booking_id CASCADE`,
-    `ALTER TABLE room_service ADD COLUMN booking_id INTEGER REFERENCES bookings(id) ON DELETE SET NULL`,
-    `ALTER TABLE room_service ADD COLUMN IF NOT EXISTS menu_item_id UUID REFERENCES menu_items(id) ON DELETE SET NULL`,
-    `ALTER TABLE room_service ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1`,
-    `ALTER TABLE room_service ADD COLUMN IF NOT EXISTS total_amount DECIMAL(10, 2) DEFAULT 0`,
-    `ALTER TABLE room_service ADD COLUMN IF NOT EXISTS special_request TEXT`,
-    `ALTER TABLE room_service ADD COLUMN IF NOT EXISTS guest_name VARCHAR(100)`,
-    `ALTER TABLE room_service ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'PENDING'`,
-    `ALTER TABLE room_service ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP`
-  ];
-
-  for (const statement of statements) {
-    await db.query(statement);
-  }
-
+  // 6. Attendance/Staff (Simplified for MVP)
   await db.query(`
-    ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_status_check
-  `);
-  await db.query(`
-    ALTER TABLE bookings
-    ADD CONSTRAINT bookings_status_check
-    CHECK (status IN ('PENDING', 'CONFIRMED', 'CHECKED_IN', 'CANCELLED', 'COMPLETED'))
+    CREATE TABLE IF NOT EXISTS attendance (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      staff_id UUID REFERENCES users(id),
+      date DATE DEFAULT CURRENT_DATE,
+      check_in TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      check_out TIMESTAMP WITH TIME ZONE,
+      status VARCHAR(20) DEFAULT 'PRESENT',
+      UNIQUE(staff_id, date)
+    )
   `);
 };
 
 const seedRooms = async () => {
   const roomCount = await db.query('SELECT COUNT(*)::int AS count FROM rooms');
-  if (roomCount.rows[0].count > 0) {
-    return;
-  }
+  if (roomCount.rows[0].count > 0) return;
 
   for (const room of roomSeeds) {
     await db.query(
-      `INSERT INTO rooms
-       (number, title, type, price, status, capacity, bed_type, size_sqft, amenities, description, policies, image_urls, location, "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11::jsonb, $12::jsonb, $13, NOW())`,
+      `INSERT INTO rooms 
+       (room_number, title, type, price, status, capacity, bed_type, size_sqft, amenities, description, policies, image_urls, location)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11::jsonb, $12::jsonb, $13)`,
       [
-        room.number,
+        room.number || room.room_number,
         room.title,
         room.type,
         room.price,
-        room.status,
-        room.capacity,
+        room.status || 'AVAILABLE',
+        room.capacity || 2,
         room.bed_type,
         room.size_sqft,
-        JSON.stringify(room.amenities),
+        JSON.stringify(room.amenities || []),
         room.description,
-        JSON.stringify(room.policies),
-        JSON.stringify(room.image_urls),
+        JSON.stringify(room.policies || []),
+        JSON.stringify(room.image_urls || []),
         'Kathmandu, Nepal',
       ]
     );
@@ -112,51 +146,35 @@ const seedRooms = async () => {
 const seedMenu = async () => {
   const categoryCount = await db.query('SELECT COUNT(*)::int AS count FROM menu_categories');
   if (categoryCount.rows[0].count === 0) {
-    for (let index = 0; index < menuCategories.length; index += 1) {
-      await db.query(
-        `INSERT INTO menu_categories (name, sort_order, "updatedAt")
-         VALUES ($1, $2, NOW())`,
-        [menuCategories[index], index + 1]
-      );
+    for (let i = 0; i < menuCategories.length; i++) {
+      await db.query('INSERT INTO menu_categories (name, sort_order) VALUES ($1, $2)', [menuCategories[i], i + 1]);
     }
   }
 
   const itemCount = await db.query('SELECT COUNT(*)::int AS count FROM menu_items');
-  if (itemCount.rows[0].count > 0) {
-    return;
-  }
+  if (itemCount.rows[0].count > 0) return;
 
   for (const item of menuItemSeeds) {
     const category = await db.query('SELECT id FROM menu_categories WHERE name = $1', [item.category_name]);
-    await db.query(
-      `INSERT INTO menu_items
-       (category_id, name, description, price, image_url, is_veg, spice_level, is_available, "updatedAt")
-       VALUES ($1, $2, $3, $4, $5, $6, $7, true, NOW())`,
-      [
-        category.rows[0]?.id || null,
-        item.name,
-        item.description,
-        item.price,
-        item.image_url,
-        item.is_veg,
-        item.spice_level,
-      ]
-    );
+    if (category.rows.length > 0) {
+      await db.query(
+        `INSERT INTO menu_items (category_id, name, description, price, image_url, is_veg, spice_level)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [category.rows[0].id, item.name, item.description, item.price, item.image_url, item.is_veg, item.spice_level]
+      );
+    }
   }
 };
 
 const initDatabase = async () => {
   try {
-    await createBaseTables();
-    await alterTables();
+    await createTables();
     await seedRooms();
     await seedMenu();
-    console.log('Hotel bootstrap complete');
+    console.log('✅ Full PostgreSQL Database Bootstrap Complete');
   } catch (error) {
-    console.error('Failed to bootstrap hotel data:', error);
+    console.error('❌ Failed to bootstrap database:', error);
   }
 };
 
-module.exports = {
-  initDatabase,
-};
+module.exports = { initDatabase };

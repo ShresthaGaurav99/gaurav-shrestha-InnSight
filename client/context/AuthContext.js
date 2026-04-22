@@ -30,12 +30,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const redirectByRole = (role) => {
-    if (role === 'admin' || role === 'manager') {
+    if (role === 'admin' || role === 'manager' || role === 'customer' || role === 'guest') {
       router.replace('/(tabs)/dashboard');
     } else if (role === 'staff') {
       router.replace('/(tabs)/tasks');
     } else {
-      router.replace('/(tabs)/customer');
+      router.replace('/(tabs)/dashboard');
     }
   };
 

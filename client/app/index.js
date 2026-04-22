@@ -18,13 +18,5 @@ export default function Index() {
     return <Redirect href="/(auth)/login" />;
   }
 
-  if (user.role === 'admin' || user.role === 'manager') {
-    return <Redirect href="/(tabs)/dashboard" />;
-  }
-
-  if (user.role === 'staff') {
-    return <Redirect href="/(tabs)/tasks" />;
-  }
-
-  return <Redirect href="/(tabs)/customer" />;
+  return <Redirect href="/(tabs)/dashboard" />;
 }

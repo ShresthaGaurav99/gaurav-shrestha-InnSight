@@ -5,40 +5,34 @@ const { auth, authorize } = require('../middleware/auth');
 
 // Manager assigns task
 router.post('/', [auth, authorize('manager')], async (req, res) => {
-    const { title, description, assignedTo, dueDate } = req.body;
-    const assignedBy = req.user.id;
+    const { title, description, staffId } = req.body;
 
     try {
-        const query = `INSERT INTO tasks (title, description, assigned_to, assigned_by, due_date) VALUES (?, ?, ?, ?, ?)`;
-        const params = [title, description, assignedTo, assignedBy, dueDate];
-
-        // Using run() via the wrapper or raw db instance
-        db.db.run(query, params, function (err) {
-            if (err) {
-                return res.status(500).json({ message: 'Server error: ' + err.message });
-            }
-            // Fetch the inserted task
-            db.db.get(`SELECT * FROM tasks WHERE id = ?`, [this.lastID], (err2, row) => {
-                if (err2) return res.status(500).json({ message: 'Server error' });
-                res.status(201).json(row);
-            });
-        });
+        const result = await db.query(
+            `INSERT INTO tasks (title, description, "staffId", status, "createdAt", "updatedAt") 
+             VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING id`,
+            [title, description, staffId, 'PENDING']
+        );
+        
+        const taskId = result.rows[0].id;
+        const task = await db.query('SELECT * FROM tasks WHERE id = $1', [taskId]);
+        res.status(201).json(task.rows[0]);
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('Create task error:', err);
+        res.status(500).json({ message: 'Server error', error: err.message });
     }
 });
 
 // Staff views tasks
 router.get('/assigned', [auth, authorize('staff')], async (req, res) => {
     try {
-        // SQLite uses ? instead of $1
-        const query = 'SELECT * FROM tasks WHERE assigned_to = ? ORDER BY created_at DESC';
-        db.db.all(query, [req.user.id], (err, rows) => {
-            if (err) return res.status(500).json({ message: err.message });
-            res.json(rows);
-        });
+        const result = await db.query(
+            'SELECT * FROM tasks WHERE "staffId" = $1 ORDER BY "createdAt" DESC',
+            [req.user.userId]
+        );
+        res.json(result.rows);
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error', error: err.message });
     }
 });
 
@@ -46,29 +40,25 @@ router.get('/assigned', [auth, authorize('staff')], async (req, res) => {
 router.patch('/:id/status', [auth, authorize('staff')], async (req, res) => {
     const { status } = req.body;
     try {
-        const query = 'UPDATE tasks SET status = ? WHERE id = ? AND assigned_to = ?';
-        db.db.run(query, [status, req.params.id, req.user.id], function (err) {
-            if (err) return res.status(500).json({ message: err.message });
-
-            db.db.get('SELECT * FROM tasks WHERE id = ?', [req.params.id], (err2, row) => {
-                if (err2) return res.status(500).json({ message: 'Server error' });
-                res.json(row);
-            });
-        });
+        const result = await db.query(
+            'UPDATE tasks SET status = $1, "updatedAt" = NOW() WHERE id = $2 AND "staffId" = $3 RETURNING *',
+            [status, req.params.id, req.user.userId]
+        );
+        
+        if (result.rows.length === 0) return res.status(404).json({ message: 'Task not found or unauthorized' });
+        res.json(result.rows[0]);
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error', error: err.message });
     }
 });
 
 // Manager views all tasks summary
 router.get('/summary', [auth, authorize('manager')], async (req, res) => {
     try {
-        db.db.all('SELECT status, COUNT(*) as count FROM tasks GROUP BY status', [], (err, rows) => {
-            if (err) return res.status(500).json({ message: err.message });
-            res.json(rows);
-        });
+        const result = await db.query('SELECT status, COUNT(*) as count FROM tasks GROUP BY status');
+        res.json(result.rows);
     } catch (err) {
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error', error: err.message });
     }
 });
 

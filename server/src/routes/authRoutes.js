@@ -10,6 +10,7 @@ router.post('/resend-otp', authController.resendOTP);
 router.post('/forgot-password', authController.requestPasswordReset);
 router.post('/reset-password', authController.resetPassword);
 router.get('/me', auth, authController.getMe);
+router.put('/profile', auth, authController.updateProfile);
 
 // Added for task assignment
 router.get('/staff', async (req, res) => {

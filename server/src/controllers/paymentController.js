@@ -20,9 +20,9 @@ const buildGatewayPayload = (gateway, amount, bookingId) => {
       provider: 'Khalti',
       amount,
       bookingId,
-      publicKeyConfigured: !!process.env.KHALTI_PUBLIC_KEY,
+      publicKey: process.env.KHALTI_PUBLIC_KEY,
       callbackUrl: process.env.KHALTI_CALLBACK_URL || 'https://example.com/khalti/callback',
-      liveMode: false,
+      liveMode: process.env.KHALTI_ENV === 'prod',
     };
   }
 

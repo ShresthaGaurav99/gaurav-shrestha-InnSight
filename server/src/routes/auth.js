@@ -10,11 +10,10 @@ router.get('/me', auth, authController.getMe);
 router.get('/staff', [auth, authorize('manager')], async (req, res) => {
     try {
         const db = require('../config/db');
-        db.db.all("SELECT id, full_name as fullName, email FROM users WHERE role = 'staff'", [], (err, rows) => {
-            if (err) return res.status(500).json({ message: err.message });
-            res.json(rows);
-        });
+        const result = await db.query("SELECT id, name as fullName, email FROM users WHERE role = 'staff'");
+        res.json(result.rows);
     } catch (err) {
+        console.error('Fetch staff error:', err);
         res.status(500).json({ message: 'Server error' });
     }
 });
