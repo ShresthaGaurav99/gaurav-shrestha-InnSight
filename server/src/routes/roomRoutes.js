@@ -4,8 +4,8 @@ const roomController = require('../controllers/roomController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 // GET /api/rooms → fetch all rooms
-router.get('/', authMiddleware, roomController.getAllRooms);
-router.get('/:id', authMiddleware, roomController.getRoomById);
+router.get('/', roomController.getAllRooms);
+router.get('/:id', roomController.getRoomById);
 
 // POST /api/rooms → add new room
 router.post('/', authMiddleware, roomController.addRoom);

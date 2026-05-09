@@ -25,7 +25,7 @@ const createTables = async () => {
   await db.query(`
     CREATE TABLE IF NOT EXISTS rooms (
       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-      room_number VARCHAR(10) UNIQUE NOT NULL,
+      number VARCHAR(10) UNIQUE NOT NULL,
       type VARCHAR(50) NOT NULL,
       price DECIMAL(10, 2) NOT NULL,
       status VARCHAR(20) DEFAULT 'AVAILABLE',
@@ -61,14 +61,42 @@ const createTables = async () => {
     )
   `);
 
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS payments (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      user_id UUID REFERENCES users(id),
+      booking_id UUID REFERENCES bookings(id),
+      amount DECIMAL(10, 2) NOT NULL,
+      method VARCHAR(50) DEFAULT 'CASH',
+      status VARCHAR(30) DEFAULT 'UNPAID',
+      transaction_id VARCHAR(100),
+      gateway VARCHAR(30) DEFAULT 'CASH',
+      reference_type VARCHAR(30) DEFAULT 'BOOKING',
+      reference_id UUID,
+      provider_payload JSONB DEFAULT '{}'::jsonb,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // 4. Tasks
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS staff (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      name VARCHAR(100) NOT NULL,
+      position VARCHAR(100),
+      email VARCHAR(100) UNIQUE,
+      "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   await db.query(`
     CREATE TABLE IF NOT EXISTS tasks (
       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
       title VARCHAR(200) NOT NULL,
       description TEXT,
       status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'IN-PROGRESS', 'COMPLETED')),
-      "staffId" UUID REFERENCES users(id) ON DELETE SET NULL,
+      "staffId" UUID,
       "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
     )
@@ -105,13 +133,132 @@ const createTables = async () => {
   await db.query(`
     CREATE TABLE IF NOT EXISTS attendance (
       id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-      staff_id UUID REFERENCES users(id),
+      staff_id UUID REFERENCES staff(id),
       date DATE DEFAULT CURRENT_DATE,
       check_in TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       check_out TIMESTAMP WITH TIME ZONE,
       status VARCHAR(20) DEFAULT 'PRESENT',
       UNIQUE(staff_id, date)
     )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS "Inventory" (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      name VARCHAR(120) NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 0,
+      status VARCHAR(30) NOT NULL DEFAULT 'OUT_OF_STOCK',
+      "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await db.query('ALTER TABLE "Inventory" ADD COLUMN IF NOT EXISTS name VARCHAR(120)');
+  await db.query('ALTER TABLE "Inventory" ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 0');
+  await db.query('ALTER TABLE "Inventory" ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT \'OUT_OF_STOCK\'');
+  await db.query('ALTER TABLE "Inventory" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP');
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      title VARCHAR(200) NOT NULL,
+      message TEXT,
+      status VARCHAR(20) DEFAULT 'UNREAD',
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS room_service (
+      id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+      room_number VARCHAR(10),
+      booking_id UUID REFERENCES bookings(id) ON DELETE SET NULL,
+      menu_item_id UUID REFERENCES menu_items(id) ON DELETE SET NULL,
+      item VARCHAR(120) NOT NULL,
+      price DECIMAL(10, 2) NOT NULL DEFAULT 0,
+      quantity INTEGER DEFAULT 1,
+      total_amount DECIMAL(10, 2) DEFAULT 0,
+      status VARCHAR(20) DEFAULT 'PENDING',
+      special_request TEXT,
+      guest_name VARCHAR(100),
+      payment_status VARCHAR(20) DEFAULT 'PENDING',
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Backward-compatible schema alignment for existing databases.
+  await db.query('ALTER TABLE rooms ADD COLUMN IF NOT EXISTS number VARCHAR(10)');
+  await db.query('ALTER TABLE rooms ADD COLUMN IF NOT EXISTS title VARCHAR(120)');
+  await db.query('ALTER TABLE rooms ADD COLUMN IF NOT EXISTS bed_type VARCHAR(60)');
+  await db.query('ALTER TABLE rooms ADD COLUMN IF NOT EXISTS size_sqft INTEGER');
+  await db.query('ALTER TABLE rooms ADD COLUMN IF NOT EXISTS amenities JSONB DEFAULT \'[]\'::jsonb');
+  await db.query('ALTER TABLE rooms ADD COLUMN IF NOT EXISTS description TEXT');
+  await db.query('ALTER TABLE rooms ADD COLUMN IF NOT EXISTS policies JSONB DEFAULT \'[]\'::jsonb');
+  await db.query('ALTER TABLE rooms ADD COLUMN IF NOT EXISTS image_urls JSONB DEFAULT \'[]\'::jsonb');
+  await db.query('ALTER TABLE rooms ADD COLUMN IF NOT EXISTS location VARCHAR(120) DEFAULT \'Kathmandu, Nepal\'');
+  await db.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = 'rooms' AND column_name = 'room_number'
+      ) THEN
+        EXECUTE 'UPDATE rooms SET number = room_number WHERE number IS NULL AND room_number IS NOT NULL';
+      END IF;
+    END
+    $$;
+  `);
+  await db.query('CREATE UNIQUE INDEX IF NOT EXISTS rooms_number_unique_idx ON rooms(number)');
+
+  await db.query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS phone VARCHAR(20)');
+  await db.query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS nights INTEGER DEFAULT 1');
+  await db.query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "guestCount" INTEGER DEFAULT 1');
+  await db.query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "roomRate" DECIMAL(10, 2) DEFAULT 0');
+  await db.query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "vatAmount" DECIMAL(10, 2) DEFAULT 0');
+  await db.query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "totalAmount" DECIMAL(10, 2) DEFAULT 0');
+  await db.query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "paymentStatus" VARCHAR(20) DEFAULT \'PENDING\'');
+
+  await db.query('ALTER TABLE payments ADD COLUMN IF NOT EXISTS gateway VARCHAR(30) DEFAULT \'CASH\'');
+  await db.query('ALTER TABLE payments ADD COLUMN IF NOT EXISTS reference_type VARCHAR(30) DEFAULT \'BOOKING\'');
+  await db.query('ALTER TABLE payments ADD COLUMN IF NOT EXISTS reference_id UUID');
+  await db.query('ALTER TABLE payments ADD COLUMN IF NOT EXISTS provider_payload JSONB DEFAULT \'{}\'::jsonb');
+
+  await db.query(`
+    DO $$
+    DECLARE fk_name TEXT;
+    BEGIN
+      SELECT tc.constraint_name INTO fk_name
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.key_column_usage kcu
+        ON tc.constraint_name = kcu.constraint_name
+       AND tc.table_schema = kcu.table_schema
+      WHERE tc.table_name = 'tasks'
+        AND tc.constraint_type = 'FOREIGN KEY'
+        AND kcu.column_name = 'staffId'
+      LIMIT 1;
+
+      IF fk_name IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE tasks DROP CONSTRAINT %I', fk_name);
+      END IF;
+    END
+    $$;
+  `);
+
+  await db.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'tasks_staffid_staff_fkey'
+      ) THEN
+        ALTER TABLE tasks
+          ADD CONSTRAINT tasks_staffid_staff_fkey
+          FOREIGN KEY ("staffId") REFERENCES staff(id) ON DELETE SET NULL;
+      END IF;
+    END
+    $$;
   `);
 };
 
@@ -122,7 +269,7 @@ const seedRooms = async () => {
   for (const room of roomSeeds) {
     await db.query(
       `INSERT INTO rooms 
-       (room_number, title, type, price, status, capacity, bed_type, size_sqft, amenities, description, policies, image_urls, location)
+       (number, title, type, price, status, capacity, bed_type, size_sqft, amenities, description, policies, image_urls, location)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb, $10, $11::jsonb, $12::jsonb, $13)`,
       [
         room.number || room.room_number,

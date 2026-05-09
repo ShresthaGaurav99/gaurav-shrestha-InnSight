@@ -211,6 +211,11 @@ exports.deleteRoom = async (req, res) => {
     }
     res.json({ message: 'Room deleted successfully' });
   } catch (error) {
+    if (error.code === '23503') {
+      return res.status(400).json({
+        message: 'Cannot delete room with existing bookings. Cancel or remove linked bookings first.',
+      });
+    }
     res.status(500).json({ message: 'Error deleting room', error: error.message });
   }
 };

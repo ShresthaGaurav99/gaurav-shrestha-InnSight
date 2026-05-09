@@ -147,13 +147,6 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Incorrect password' });
     }
 
-    if (user.otp || user.otp_expires) {
-      return res.status(403).json({
-        message: 'Please verify your email with the OTP sent during registration before logging in.',
-        email,
-      });
-    }
-
     const token = signToken(user);
 
     return res.json({

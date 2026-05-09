@@ -4,6 +4,7 @@ const roomServiceController = require('../controllers/roomServiceController');
 const { auth } = require('../middleware/auth');
 
 router.get('/', auth, roomServiceController.getAllOrders);
+router.get('/my', auth, roomServiceController.getMyOrders);
 router.post('/', auth, roomServiceController.createOrder);
 router.put('/:id', auth, roomServiceController.updateOrderStatus);
 

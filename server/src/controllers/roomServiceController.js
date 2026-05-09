@@ -19,6 +19,26 @@ exports.getAllOrders = async (req, res) => {
   }
 };
 
+exports.getMyOrders = async (req, res) => {
+  try {
+    const result = await db.query(`
+      SELECT
+        rs.*,
+        mi.name AS menu_item_name,
+        mi.image_url AS menu_item_image,
+        b."guestName" AS booking_guest_name
+      FROM room_service rs
+      LEFT JOIN menu_items mi ON rs.menu_item_id = mi.id
+      JOIN bookings b ON rs.booking_id = b.id
+      WHERE b.user_id = $1
+      ORDER BY rs.created_at DESC
+    `, [req.user.id]);
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.createOrder = async (req, res) => {
   const { roomNumber, bookingId, menuItemId, quantity = 1, specialRequest, guestName } = req.body;
   try {

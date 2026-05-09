@@ -1,9 +1,22 @@
 const db = require('../config/db');
 
+// Helper to get or create staff record from email
+async function getOrCreateStaff(email, name) {
+  let result = await db.query('SELECT id FROM staff WHERE email = $1', [email]);
+  if (result.rows.length === 0) {
+    result = await db.query(
+      'INSERT INTO staff (name, email, position, "updatedAt") VALUES ($1, $2, $3, NOW()) RETURNING id',
+      [name || email.split('@')[0], email, 'Staff']
+    );
+  }
+  return result.rows[0].id;
+}
+
 // Check-in (Mark attendance for today)
 exports.checkIn = async (req, res) => {
-  const { staffId } = req.body;
+  const { email, name } = req.body;
   try {
+    const staffId = await getOrCreateStaff(email, name);
     const result = await db.query(
       'INSERT INTO attendance (staff_id, status) VALUES ($1, \'PRESENT\') ON CONFLICT (staff_id, date) DO UPDATE SET check_in = CURRENT_TIMESTAMP RETURNING *',
       [staffId]
@@ -16,8 +29,9 @@ exports.checkIn = async (req, res) => {
 
 // Check-out (Finish shift)
 exports.checkOut = async (req, res) => {
-  const { staffId } = req.body;
+  const { email, name } = req.body;
   try {
+    const staffId = await getOrCreateStaff(email, name);
     const result = await db.query(
       'UPDATE attendance SET check_out = CURRENT_TIMESTAMP WHERE staff_id = $1 AND date = CURRENT_DATE RETURNING *',
       [staffId]
@@ -47,10 +61,14 @@ exports.getTodayRoster = async (req, res) => {
   }
 };
 
-// Get attendance history for a staff member
+// Get attendance history for a staff member by email
 exports.getHistory = async (req, res) => {
-  const { staffId } = req.params;
+  const { email } = req.params;
   try {
+    const staffResult = await db.query('SELECT id FROM staff WHERE email = $1', [email]);
+    if (staffResult.rows.length === 0) return res.json([]);
+    const staffId = staffResult.rows[0].id;
+
     const result = await db.query(
       'SELECT * FROM attendance WHERE staff_id = $1 ORDER BY date DESC',
       [staffId]

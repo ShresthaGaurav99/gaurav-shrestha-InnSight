@@ -6,7 +6,12 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "smoke:api": "node scratch/phase2_smoke.js",
+    "smoke:api:report": "node scratch/phase2_smoke.js",
+    "smoke:core": "node scratch/phase2_smoke.js core",
+    "smoke:billing": "node scratch/phase2_smoke.js billing",
+    "smoke:ops": "node scratch/phase2_smoke.js ops"
   },
   "keywords": [],
   "author": "",

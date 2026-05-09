@@ -6,6 +6,6 @@ const { auth } = require('../middleware/auth');
 router.post('/check-in', auth, attendanceController.checkIn);
 router.post('/check-out', auth, attendanceController.checkOut);
 router.get('/today', auth, attendanceController.getTodayRoster);
-router.get('/history/:staffId', auth, attendanceController.getHistory);
+router.get('/history/:email', auth, attendanceController.getHistory);
 
 module.exports = router;

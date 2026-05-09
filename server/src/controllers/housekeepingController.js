@@ -2,7 +2,7 @@ const db = require('../config/db');
 
 // Map DB status to UI status
 const mapStatusToUI = (status) => {
-  switch (status.toLowerCase()) {
+  switch (String(status || '').toLowerCase()) {
     case 'available': return 'CLEAN';
     case 'occupied': return 'DIRTY';
     case 'maintenance': return 'DIRTY';
@@ -31,9 +31,9 @@ exports.updateHousekeepingStatus = async (req, res) => {
   const { status } = req.body;
   
   // Map UI status back to DB status
-  let dbStatus = 'maintenance';
-  if (status === 'CLEAN') dbStatus = 'available';
-  if (status === 'CLEANING') dbStatus = 'cleaning';
+  let dbStatus = 'MAINTENANCE';
+  if (status === 'CLEAN') dbStatus = 'AVAILABLE';
+  if (status === 'CLEANING') dbStatus = 'CLEANING';
   
   try {
     await db.query('UPDATE rooms SET status = $1, "updatedAt" = NOW() WHERE id = $2', [dbStatus, id]);

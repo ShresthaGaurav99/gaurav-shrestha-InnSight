@@ -4,6 +4,6 @@ const staffController = require('../controllers/staffController');
 const { auth, authorize } = require('../middleware/auth');
 
 router.get('/', auth, staffController.getAllStaff);
-router.post('/', auth, staffController.addStaff);
+router.delete('/:id', auth, authorize('manager'), staffController.deleteStaff);
 
 module.exports = router;

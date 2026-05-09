@@ -1,89 +1,85 @@
 # InnSight: Smart & Real-Time Hotel Management System
 
-This is a mobile-first hotel management system built with React Native (Expo) and Node.js.
+InnSight is a comprehensive, modern hotel management platform designed for a Final Year Project. It features a complete end-to-end digital experience with dedicated portals for Customers, Staff, and Administrators.
+
+Built using a modern web stack: **React (Vite + Tailwind CSS)** on the frontend and **Node.js (Express + PostgreSQL)** on the backend.
+
+## 🌟 Key Features
+
+*   **Secure Authentication:** Role-based access control (Customer, Staff, Manager) with encrypted passwords and live OTP email verification via Brevo.
+*   **Customer Booking Flow:** Guests can browse rooms, make reservations, and check out using integrated simulated payment gateways (eSewa/Khalti) with printable receipts.
+*   **Live Room Service Engine:** Guests can order food to their room from a dynamic menu. Orders appear instantly on the Staff Dashboard via live polling, and guests can watch their order status update in real-time.
+*   **Staff Operations & Attendance:** Staff members can log their shifts (Clock In/Out) which tracks exactly how many hours they worked.
+*   **Administrative Control:** Managers have a dedicated dashboard to view live revenue, manage room inventory (CRUD), and securely add or remove staff members from the system.
 
 ## 🚀 Getting Started
 
-Ensure you have Node.js and npm installed on your machine.
+Ensure you have Node.js and PostgreSQL installed on your machine.
 
-### 1. Start the Backend Server
-The backend handles authentication, bookings, and tasks. It uses **PostgreSQL** for data storage.
+### 1. Database Setup
+Ensure PostgreSQL is running and create a database named `innsight`.
 
+### 2. Start the Backend Server
 ```bash
 cd server
 npm install
-# Ensure you have a .env file with DATABASE_URL=postgres://user:pass@localhost:5432/dbname
+```
+
+**Environment Variables:** Create a `.env` file in the `server/` directory:
+```env
+# Database Connection
+DATABASE_URL=postgres://user:password@localhost:5432/innsight
+
+# JWT Secret for Authentication
+JWT_SECRET=your_super_secret_jwt_key_here
+
+# Brevo SMTP/API Key (For sending OTP Emails)
+BREVO_API_KEY=your_brevo_api_key
+
+# Payment Gateways (UAT/Sandbox credentials)
+PUBLIC_BASE_URL=http://localhost:5173
+ESEWA_PRODUCT_CODE=EPAYTEST
+ESEWA_SECRET_KEY=8gBm/:&EnhH.1/q
+KHALTI_SECRET_KEY=your_khalti_test_key
+```
+
+**Seed the Database (Optional but Recommended):**
+To populate your app with sample rooms and a restaurant menu for demonstration purposes, run:
+```bash
+node src/seed.js
+```
+
+**Start the Server:**
+```bash
 npm run dev
 ```
 The server will start on `http://localhost:5000`.
 
-### 2. Start the Mobile Client
-The frontend is a React Native app built with Expo.
+### 3. Start the Frontend Application
+The frontend is a modern React web application built with Vite and TailwindCSS.
 
 ```bash
-cd client
+cd client/innscape-connect-main
 npm install
-npx expo start
+npm run dev
 ```
-This will open the Metro bundler.
-- Press `a` to run on Android Emulator.
-- Press `i` to run on iOS Simulator.
-- Scan the QR code with the **Expo Go** app on your physical device.
+The application will be accessible at `http://localhost:5173`.
 
-**Note:** If testing on a physical device, update `client/services/api.js` with your computer's local IP address (e.g., `http://192.168.1.X:5000/api`).
+## 📱 Role Testing Guide
 
-## 📱 Features & Testing Guide
+To experience all features, try creating accounts for all three roles:
 
-Once the app is running, follow this flow to test the core features:
-
-1.  **Register a User**:
-    - Open the app and tap **"Don't have an account? Register"**.
-    - Sign up as a **Customer** (e.g., `user@test.com`) to see the Booking Dashboard.
-    - Sign up as **Staff** (e.g., `staff@test.com`) to see assigned tasks.
-    - Sign up as **Manager** (e.g., `manager@test.com`) to see hotel stats.
-
-2.  **Verify Database**:
-    - The backend uses a PostgreSQL database.
-    - You can view the table structure in `server/src/models/schema.sql`.
+1.  **Customer (`customer`)**: Register an account normally from the public page. You can book rooms, checkout via eSewa, and place Room Service orders from the dynamic menu.
+2.  **Administrator (`manager`)**: Since the public registration is securely locked to 'customer', you can manually change a user's role to `manager` in your PostgreSQL database (`UPDATE users SET role = 'manager' WHERE email = '...';`). Once logged in, you can manage inventory and add staff.
+3.  **Staff (`staff`)**: Use your Manager account to navigate to the "Manage Staff" tab and create a new staff member. The staff member will receive an OTP via email to verify their account, log in, clock into their shift, and fulfill live room service orders.
 
 ## 🛠 Project Structure
 
-- **`client/`**: React Native frontend code.
-  - `app/`: Screens and navigation (Expo Router).
-  - `components/`: Reusable UI components.
-  - `context/`: State management (Auth).
-  - `services/`: API integration.
+- **`client/innscape-connect-main/`**: React Web frontend.
+  - `src/routes/`: Page views and dashboard components.
+  - `src/components/`: Reusable Tailwind UI components.
+  - `src/lib/`: API configuration and helper functions.
 - **`server/`**: Node.js Express backend.
-  - `src/controllers/`: Business logic.
-  - `src/models/`: Database schema (PostgreSQL).
-  - `src/routes/`: API endpoints.
-
-## 🔜 Next Steps for Development
-
-1.  **Booking Flow**: Implement the UI to select dates and book a room.
-2.  **Task Assignment**: Create a UI for Managers to assign tasks to Staff.
-3.  **Profile**: Add a profile settings page.
-4.  **Real-time Notifications**: Integrate Firebase or Socket.io for instant alerts.
-
-## 💳 Payment Gateway Testing (eSewa + Khalti)
-
-### eSewa (UAT)
-- **Gateway**: eSewa ePay v2 (UAT)
-- **Test user** (provided by eSewa docs):
-  - eSewa ID: `9806800001` (or `...0002` to `...0005`)
-  - Password: `Nepal@123`
-  - Token/OTP: `123456`
-- **Server env**: set in `server/.env`
-  - `PUBLIC_BASE_URL` should be reachable from your phone (LAN IP), not `localhost`, if testing on device.
-  - `ESEWA_PRODUCT_CODE` and `ESEWA_SECRET_KEY` are set to UAT defaults; replace for production.
-
-### Khalti (Sandbox)
-- **Gateway**: Khalti KPG-2 Web Checkout (Sandbox)
-- **Required**: `KHALTI_SECRET_KEY` from `https://test-admin.khalti.com`
-- **Test user IDs**:
-  - Khalti IDs: `9800000000` to `9800000005`
-  - OTP: `987654`
-  - MPIN: `1111`
-
-### How the app flow works
-- Customer books a room → picks **eSewa** or **Khalti** → app opens gateway page → server verifies status/lookup → booking is marked `PAID` when confirmed.
+  - `src/controllers/`: Business logic for auth, bookings, staff, rooms, etc.
+  - `src/models/`: Database schema (`schema.sql`).
+  - `src/routes/`: API endpoint definitions.

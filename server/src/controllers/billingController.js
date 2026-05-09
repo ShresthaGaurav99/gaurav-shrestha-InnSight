@@ -7,7 +7,7 @@ exports.getAllInvoices = async (req, res) => {
     const query = `
       SELECT p.*, b."guestName", b."guestEmail"
       FROM payments p
-      LEFT JOIN bookings b ON p."booking_id" = b.id
+      LEFT JOIN bookings b ON p.booking_id = b.id
       ORDER BY p.created_at DESC
     `;
     const result = await db.query(query);
@@ -21,12 +21,18 @@ exports.getAllInvoices = async (req, res) => {
 exports.createInvoice = async (req, res) => {
   const { bookingId, amount, method } = req.body;
   try {
-    // Note: guestName is not in payments table, it's in bookings.
-    // We link by booking_id.
+    const isOnline = method && (method.toLowerCase() === 'esewa' || method.toLowerCase() === 'khalti');
+    const status = isOnline ? 'PAID' : 'UNPAID';
+    
     const result = await db.query(
       'INSERT INTO payments (booking_id, amount, method, status, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *',
-      [bookingId, parseFloat(amount), method || 'CASH', 'UNPAID']
+      [bookingId, parseFloat(amount), method || 'CASH', status]
     );
+
+    if (status === 'PAID') {
+      await db.query('UPDATE bookings SET "paymentStatus" = $1 WHERE id = $2', ['PAID', bookingId]);
+    }
+
     res.status(201).json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
